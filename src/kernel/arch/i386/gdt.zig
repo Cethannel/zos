@@ -98,7 +98,7 @@ const GDT_DATA_PL3 = SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) |
     SEG_PRIV(3) | SEG_DATA_RDWR;
 
 var gdt align(4) = []GDTEntry {
-    create_descriptor(0, 0, 0, 0),
+    makeEntry(0, 0, 0, 0),
     makeEntry(0, 0xFFFFF, KERNEL | CODE, PROTECTED | BLOCKS_4K),
     makeEntry(0, 0xFFFFF, KERNEL | DATA, PROTECTED | BLOCKS_4K),
     makeEntry(0, 0xFFFFF, USER   | CODE, PROTECTED | BLOCKS_4K),
