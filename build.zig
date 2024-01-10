@@ -6,7 +6,7 @@ const LazyPath = std.build.LazyPath;
 const x86_64 = CrossTarget{
     .cpu_arch = Target.Cpu.Arch.x86,
     .os_tag = .freestanding,
-    .cpu_model = .{ .explicit = &Target.x86.cpu.i686 },
+    .cpu_model = .{ .explicit = &Target.x86.cpu.i386 },
 };
 
 // Although this function looks imperative, note that its job is to
@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
     });
 
     kernel.addAssemblyFile(LazyPath.relative("src/boot.S"));
+    kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/gdt.S"));
 
     kernel.setLinkerScript(LazyPath.relative("src/linker.ld"));
 

@@ -1,11 +1,12 @@
-const TTY = @import("tty.zig");
+const kstd = @import("kernel_std.zig");
+const GDT = @import("arch/i386/gdt.zig");
 
 pub fn kernel_main() void {
-    TTY.terminal_initialize();
+    kstd.terminal_initialize();
 
-    TTY.printf("Hello, kernel world!\n", .{});
+    kstd.printf("Hello, kernel world!\n", .{});
 
     for (0..25) |i| {
-        TTY.printf("Hello, kernel world! {}\n", .{i});
+        kstd.printf("Hello, kernel world! {}\n", .{i});
     }
 }

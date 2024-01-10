@@ -11,7 +11,3 @@ pub fn terminal_putchar(c: u8) void {
 pub fn terminal_write(data: []const u8, size: usize) void {
     TTY.write(data, size);
 }
-
-pub fn printf(comptime format: []const u8, args: anytype) void {
-    TTY.printf(format, args);
-}
