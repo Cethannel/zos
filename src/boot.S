@@ -36,6 +36,7 @@ stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
 
+
 /*
 The linker script specifies _start as the entry point to the kernel and the
 bootloader will jump to this position once the kernel has been loaded. It
@@ -77,16 +78,6 @@ _start:
 	*/
 	call gdt_init
 
-gdtr DW 0 /* For limit storage*/
-     DD 0 /* For base storage */
-setGdt:
-   MOV   AX, [esp + 4]
-   MOV   [gdtr], AX
-   MOV   EAX, [ESP + 8]
-   MOV   [gdtr + 2], EAX
-   LGDT  [gdtr]
-   RET
-
 	/*
 	Enter the high-level kernel. The ABI requires the stack is 16-byte
 	aligned at the time of the call instruction (which afterwards pushes
@@ -112,6 +103,7 @@ setGdt:
 	cli
 1:	hlt
 	jmp 1b
+
 
 /*
 Set the size of the _start symbol to the current location '.' minus its start.

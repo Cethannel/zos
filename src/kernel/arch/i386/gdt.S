@@ -15,3 +15,21 @@ loadGDT:
     // Reload code segment (GDT entry 1: kernel code).
     ljmp $0x08, $1f
 1:  ret
+
+setGdt:
+   mov   %ax, +4(%esp)
+   MOV   [gdtr], %ax
+   MOV   %eax, +8(%esp)
+   MOV   [gdtr + 2], %eax
+   LGDT  [gdtr]
+   RET
+
+getGdtr:
+    SGDT  [gdtr]
+    MOV   [gdtr], %eax
+    RET
+
+gdtr:
+.word 0
+.long 0
+

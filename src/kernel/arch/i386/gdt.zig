@@ -1,4 +1,4 @@
-const kstd = @import("kernel_std.zig");
+const kstd = @import("/kernel/kernel_std.zig");
 
 const GDTEntry = packed struct {
     limit_low: u16,
@@ -17,99 +17,35 @@ const GDTRegister = packed struct {
 
 extern fn loadGDT(gdtr: *const GDTRegister) void;
 
-fn create_descriptor(base: u32, limit: u32, flag: u32) void {
-    var descriptor: u64 = 0;
+fn create_entry(base: u32, limit: u32, flag: u32) GDTEntry {
+    var entry: GDTEntry = undefined;
 
     // Create the high 32 bit segment
-    descriptor = limit & 0x000F0000; // set limit bits 19:16
-    descriptor |= (flag << 8) & 0x00F0FF00; // set type, p, dpl, s, g, d/b, l and avl fields
-    descriptor |= (base >> 16) & 0x000000FF; // set base bits 23:16
-    descriptor |= base & 0xFF000000; // set base bits 31:24
+    entry.limit_low = limit & 0x0000FFFF; // set limit bits 0:15
+    entry.base_low = base & 0x0000FFFF; // set base bits 0:15
+    entry.base_mid = @shrExact(base, 16) & 0x000000FF; // set base bits 16:23
+    //entry.base_mid = (base >> 16) & 0x000000FF; // set base bits 16:23
+    entry.access = flag & 0xFF; // set type, p, dpl, s, g, d/b, l and avl fields
+    entry.limit_high = (limit >> 16) & 0x0F; // set limit bits 16:19
+    entry.flags = (flag >> 8) & 0x0F; // set segment type, p, dpl, s, g, d/b, l and avl fields
+    entry.base_high = (base >> 24) & 0x000000FF; // set base bits 24:31
 
-    // Shift by 32 to allow for low part of segment
-    descriptor <<= 32;
-
-    // Create the low 32 bit segment
-    descriptor |= base << 16; // set base bits 15:0
-    descriptor |= limit & 0x0000FFFF; // set limit bits 15:0
-
-    kstd.print("0x%.16llX\n", descriptor);
+    return entry;
 }
 
-fn SEG_DESCTYPE(x: u32) u32 {
-    return x << 0x04;
-}
-
-fn SEG_PRES(x: u32) u32 {
-    return x << 0x07;
-}
-
-fn SEG_SAVL(x: u32) u32 {
-    return x << 0x0C;
-}
-
-fn SEG_LONG(x: u32) u32 {
-    return x << 0x0D;
-}
-
-fn SEG_SIZE(x: u32) u32 {
-    return x << 0x0E;
-}
-
-fn SEG_GRAN(x: u32) u32 {
-    return x << 0x0F;
-}
-
-fn SEG_PRIV(x: u32) u32 {
-    return (x & 0x03) << 0x05;
-}
-
-const SEG_DATA_RD = 0x00; // Read-Only
-const SEG_DATA_RDA = 0x01; // Read-Only, accessed
-const SEG_DATA_RDWR = 0x02; // Read/Write
-const SEG_DATA_RDWRA = 0x03; // Read/Write, accessed
-const SEG_DATA_RDEXPD = 0x04; // Read-Only, expand-down
-const SEG_DATA_RDEXPDA = 0x05; // Read-Only, expand-down, accessed
-const SEG_DATA_RDWREXPD = 0x06; // Read/Write, expand-down
-const SEG_DATA_RDWREXPDA = 0x07; // Read/Write, expand-down, accessed
-const SEG_CODE_EX = 0x08; // Execute-Only
-const SEG_CODE_EXA = 0x09; // Execute-Only, accessed
-const SEG_CODE_EXRD = 0x0A; // Execute/Read
-const SEG_CODE_EXRDA = 0x0B; // Execute/Read, accessed
-const SEG_CODE_EXC = 0x0C; // Execute-Only, conforming
-const SEG_CODE_EXCA = 0x0D; // Execute-Only, conforming, accessed
-const SEG_CODE_EXRDC = 0x0E; // Execute/Read, conforming
-const SEG_CODE_EXRDCA = 0x0F; // Execute/Read, conforming, accessed
-
-const GDT_CODE_PL0 = SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) |
-    SEG_LONG(0) | SEG_SIZE(1) | SEG_GRAN(1) |
-    SEG_PRIV(0) | SEG_CODE_EXRD;
-
-const GDT_DATA_PL0 = SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) |
-    SEG_LONG(0) | SEG_SIZE(1) | SEG_GRAN(1) |
-    SEG_PRIV(0) | SEG_DATA_RDWR;
-
-const GDT_CODE_PL3 = SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) |
-    SEG_LONG(0) | SEG_SIZE(1) | SEG_GRAN(1) |
-    SEG_PRIV(3) | SEG_CODE_EXRD;
-
-const GDT_DATA_PL3 = SEG_DESCTYPE(1) | SEG_PRES(1) | SEG_SAVL(0) |
-    SEG_LONG(0) | SEG_SIZE(1) | SEG_GRAN(1) |
-    SEG_PRIV(3) | SEG_DATA_RDWR;
-
-var gdt align(4) = []GDTEntry {
-    makeEntry(0, 0, 0, 0),
-    makeEntry(0, 0xFFFFF, KERNEL | CODE, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0xFFFFF, KERNEL | DATA, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0xFFFFF, USER   | CODE, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0xFFFFF, USER   | DATA, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0, 0, 0),  // TSS (fill in at runtime).
+const gdt = [_]GDTEntry{
+    create_entry(0, 0, 0), // null segment
+    create_entry(0, 0xFFFFFFFF, 0x9A2E), // kernel code segment
+    create_entry(0, 0xFFFFFFFF, 0x92AE), // kernel data segment
+    create_entry(0, 0xFFFFFFFF, 0xFA2E), // user code segment
+    create_entry(0, 0xFFFFFFFF, 0xF2AE), // user data segment
 };
 
-export fn gdt_init() void {
-    create_descriptor(0, 0, 0);
-    create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL0));
-    create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL0));
-    create_descriptor(0, 0x000FFFFF, (GDT_CODE_PL3));
-    create_descriptor(0, 0x000FFFFF, (GDT_DATA_PL3));
+const GDT = GDTRegister{
+    .limit = @as(u16, @sizeOf(@TypeOf(gdt))),
+    .base = &gdt[0],
+};
+
+pub fn init() void {
+    loadGDT(&GDT);
 }

@@ -1,4 +1,4 @@
-zig-out/bin/zig-os: src/*.zig
+zig-out/bin/zig-os: src/**/*.zig
 	zig build
 
 isodir/boot:
