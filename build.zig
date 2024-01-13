@@ -36,6 +36,7 @@ pub fn build(b: *std.Build) void {
 
     kernel.addAssemblyFile(LazyPath.relative("src/boot.S"));
     kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/gdt.S"));
+    kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/interrupts.S"));
 
     kernel.setLinkerScript(LazyPath.relative("src/linker.ld"));
 

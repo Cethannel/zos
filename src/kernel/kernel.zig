@@ -1,6 +1,7 @@
 const kstd = @import("kernel_std.zig");
 const TTY = @import("tty.zig");
 const GDT = @import("arch/i386/gdt.zig");
+const IDT = @import("arch/i386/interrupts.zig");
 
 pub fn kernelMain() void {
     TTY.terminal_initialize();
@@ -8,6 +9,8 @@ pub fn kernelMain() void {
     kstd.printf("Intializing GDT\n", .{});
 
     GDT.init();
+
+    IDT.init();
 
     kstd.printf("Hello, kernel world!\n", .{});
 
