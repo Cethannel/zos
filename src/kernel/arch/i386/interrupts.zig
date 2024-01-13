@@ -5,3 +5,8 @@ const InterruptDescriptor32 = struct {
     type_attributes: u8, // gate type, dpl, and p fields
     offset_2: u16, // offset bits 16..31
 };
+
+const IDTR = struct {
+    size: u16,
+    offset: u32,
+};

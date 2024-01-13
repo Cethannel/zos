@@ -1,8 +1,9 @@
 .type loadGDT, @function
-
+.global loadGDT
 loadGDT:
     mov +4(%esp), %eax  // Fetch the gdtr parameter.
     lgdt (%eax)         // Load the new GDT.
+    ret
 
     // Reload data segments (GDT entry 2: kernel data).
     mov $0x10, %ax
@@ -16,20 +17,15 @@ loadGDT:
     ljmp $0x08, $1f
 1:  ret
 
-setGdt:
-   mov   %ax, +4(%esp)
-   MOV   [gdtr], %ax
-   MOV   %eax, +8(%esp)
-   MOV   [gdtr + 2], %eax
-   LGDT  [gdtr]
+.global reloadSegments
+
+reloadSegments:
+   JMP   .reload_CS
+.reload_CS:
+   MOV   %AX, 0x10
+   MOV   %DS, %AX
+   MOV   %ES, %AX
+   MOV   %FS, %AX
+   MOV   %GS, %AX
+   MOV   %SS, %AX
    RET
-
-getGdtr:
-    SGDT  [gdtr]
-    MOV   [gdtr], %eax
-    RET
-
-gdtr:
-.word 0
-.long 0
-
