@@ -8,6 +8,15 @@ irq8:
     popa
     iret
 
+.global irq1
+
+irq1:
+    pusha
+    cld
+    call 	key_handler
+    popa
+    iret
+
 .global load_idt
 
 load_idt:

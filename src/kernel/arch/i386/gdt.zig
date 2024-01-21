@@ -36,6 +36,8 @@ fn createEntry(base: u32, limit: u32, flag: u32) GDTEntry {
 
 var gdt: [5]GDTEntry = undefined;
 
+var gdts: [5]GDTEntry = undefined;
+
 fn initGDT() GDTRegister {
     gdt[0] = createEntry(0, 0, 0);
     gdt[1] = createEntry(0, 0xFFFFFFFF, 0x9A2E);

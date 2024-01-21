@@ -1,6 +1,6 @@
 const kstd = @import("../../kernel_std.zig");
 
-const InterruptDescriptor32 = struct {
+const InterruptDescriptor32 = extern struct {
     offset_1: u16, // offset bits 0..15
     selector: u16, // a code segment selector in GDT or LDT
     zero: u8, // unused, set to 0
@@ -16,17 +16,24 @@ const default_descriptor = InterruptDescriptor32{
     .offset_2 = 0,
 };
 
-const IDTR = struct {
+const IDTR = extern struct {
     size: u16,
     offset: *const InterruptDescriptor32,
 };
 
-const IDT = struct {
+const IDT = extern struct {
     descriptors: [256]InterruptDescriptor32,
 };
 
-export fn timer_handler() void {
+export fn timer_handler() callconv(.C) void {
     kstd.printf("timer interrupt\n", .{});
+}
+
+export fn key_handler() callconv(.C) void {
+    kstd.printf("key interrupt\n", .{});
+    while (true) {
+        asm volatile ("hlt");
+    }
 }
 
 var idt = IDT{
@@ -34,6 +41,7 @@ var idt = IDT{
 };
 
 extern fn irq8() void;
+extern fn irq1() void;
 
 extern fn load_idt(idtr: *const IDTR) void;
 
@@ -46,12 +54,24 @@ pub fn init() void {
         .offset_2 = @intCast(@intFromPtr(&irq8) >> 16),
     };
 
+    idt.descriptors[1] = InterruptDescriptor32{
+        .offset_1 = @intCast(@intFromPtr(&irq1) & 0xffff),
+        .selector = 0x08,
+        .zero = 0,
+        .type_attributes = 0x8e,
+        .offset_2 = @intCast(@intFromPtr(&irq1) >> 16),
+    };
+
     const idtr = IDTR{
-        .size = @as(u16, @intCast(@sizeOf(IDT))),
+        .size = @as(u16, @intCast(@sizeOf(IDT))) - 1,
         .offset = &idt.descriptors[0],
     };
 
     load_idt(&idtr);
+
+    outb(0x21, 0xfd);
+    outb(0xa1, 0xff);
+    asm volatile ("sti");
 }
 
 extern fn outb(port: u16, value: u8) void;

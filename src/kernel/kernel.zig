@@ -13,8 +13,4 @@ pub fn kernelMain() void {
     IDT.init();
 
     kstd.printf("Hello, kernel world!\n", .{});
-
-    for (0..25) |i| {
-        kstd.printf("Hello, kernel world! {}\n", .{i});
-    }
 }
