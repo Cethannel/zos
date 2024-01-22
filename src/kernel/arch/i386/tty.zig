@@ -66,6 +66,10 @@ fn terminal_write(s: []const u8) void {
     }
 }
 
+export fn write_test() void {
+    terminal_write("Hello, world!");
+}
+
 pub fn initialize() void {
     terminal_row = 0;
     terminal_column = 0;
