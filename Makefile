@@ -1,4 +1,7 @@
-zig-out/bin/zig-os: $(wildcard src/**/*.zig)
+ZIG_FILES := $(shell find src -name '*.zig')
+ASM_FILES := $(shell find src -name '*.S')
+
+zig-out/bin/zig-os: $(ZIG_FILES) $(ASM_FILES)
 	zig build
 
 isodir/boot:

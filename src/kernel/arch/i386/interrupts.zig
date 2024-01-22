@@ -1,6 +1,8 @@
 const kstd = @import("../../kernel_std.zig");
 const InterruptRegisters = @import("util.zig").InterruptRegisters;
 
+const outb = @import("util.zig").outb;
+
 const InterruptDescriptor32 = packed struct {
     offset_1: u16, // offset bits 0..15
     selector: u16, // a code segment selector in GDT or LDT
@@ -75,8 +77,6 @@ extern fn irq15() void;
 extern fn isr128() void;
 extern fn isr177() void;
 
-extern fn outb(port: u16, value: u8) void;
-extern fn inb(port: u16) u8;
 var idt_entries = [_]InterruptDescriptor32{default_descriptor} ** 256;
 var idt_ptr = IDTR{
     .size = 0,
@@ -183,10 +183,10 @@ fn default_irq_handler(regs: *InterruptRegisters) void {
     kstd.printf("received irq: {}\n", .{regs.int_no});
 }
 
-const irq_routines = [_]u32{0} ** 16;
+var irq_routines = [_]u32{0} ** 16;
 
-pub fn irq_install_handler(irq: u8, handler: *fn (regs: *InterruptRegisters) void) void {
-    irq_routines[irq] = handler;
+pub fn irq_install_handler(irq: u8, handler: *const fn (regs: *InterruptRegisters) void) void {
+    irq_routines[irq] = @intFromPtr(handler);
 }
 
 pub fn irq_uninstall_handler(irq: u8) void {

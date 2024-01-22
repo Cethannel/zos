@@ -17,3 +17,6 @@ pub const InterruptRegisters = extern struct {
     useresp: u32,
     ss: u32,
 };
+
+pub extern fn outb(port: u16, value: u8) void;
+pub extern fn inb(port: u16) u8;
