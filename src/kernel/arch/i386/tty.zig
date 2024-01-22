@@ -36,11 +36,29 @@ fn terminal_putchar(c: u8) void {
         terminal_column = 0;
         return;
     }
+    if (c == 8) {
+        if (terminal_column == 0) {
+            move_up();
+        }
+        terminal_column -= 1;
+        terminal_putentryat(' ', terminal_color, terminal_column, VGA_HEIGHT - 1);
+        return;
+    }
     terminal_putentryat(c, terminal_color, terminal_column, VGA_HEIGHT - 1);
     terminal_column += 1;
     if (terminal_column == VGA_WIDTH) {
         new_line();
     }
+}
+
+fn move_up() void {
+    for (0..(VGA_HEIGHT - 1)) |row| {
+        for (0..VGA_WIDTH) |col| {
+            terminal_buffer[(row + 1) * VGA_WIDTH + col] = terminal_buffer[row * VGA_WIDTH + col];
+        }
+    }
+    clear_row(0);
+    terminal_column = VGA_WIDTH;
 }
 
 fn new_line() void {
