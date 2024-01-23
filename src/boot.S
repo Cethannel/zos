@@ -1,7 +1,8 @@
 /* Declare constants for the multiboot header. */
 .set ALIGN,    1<<0             /* align loaded modules on page boundaries */
 .set MEMINFO,  1<<1             /* provide memory map */
-.set FLAGS,    ALIGN | MEMINFO  /* this is the Multiboot 'flag' field */
+.set USEGFX,	 0								/* request graphical mode */
+.set FLAGS,    ALIGN | MEMINFO | USEGFX  /* this is the Multiboot 'flag' field */
 .set MAGIC,    0x1BADB002       /* 'magic number' lets bootloader find the header */
 .set CHECKSUM, -(MAGIC + FLAGS) /* checksum of above, to prove we are multiboot */
 
@@ -17,6 +18,16 @@ forced to be within the first 8 KiB of the kernel file.
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+.long 0 # header_addr
+.long 0 # load_addr
+.long 0 # load_end_addr
+.long 0 # bss_end_addr
+.long 0 # entry_addr
+
+.long 0 # mode_type
+.long 800 # width
+.long 600 # height
+.long 32 # depth
 
 /*
 The multiboot standard does not define the value of the stack pointer register
@@ -33,18 +44,16 @@ undefined behavior.
 .section .bss
 .align 16
 stack_bottom:
-.skip 16384 # 16 KiB
+.skip 16384 * 8 # 16 KiB
 stack_top:
-
 
 /*
 The linker script specifies _start as the entry point to the kernel and the
 bootloader will jump to this position once the kernel has been loaded. It
 doesn't make sense to return from this function as the bootloader is gone.
 */
-.section .text
+.section .boot
 .global _start
-.type _start, @function
 _start:
 	/*
 	The bootloader has loaded us into 32-bit protected mode on a x86
@@ -58,7 +67,20 @@ _start:
 	itself. It has absolute and complete power over the
 	machine.
 	*/
+	mov $(initial_page_dir - 0xC0000000), %eax
+	mov %eax, %cr3
 
+	mov %cr4, %eax
+	or $0x00000010, %eax
+	mov %eax, %cr4
+
+	mov %cr0, %eax
+	or $0x80000000, %eax
+	mov %eax, %cr0
+	jmp higher_half
+
+.section .text
+higher_half:
 	/*
 	To set up a stack, we set the esp register to point to the top of the
 	stack (as it grows downwards on x86 systems). This is necessarily done
@@ -86,6 +108,9 @@ _start:
 	stack since (pushed 0 bytes so far), so the alignment has thus been
 	preserved and the call is well defined.
 	*/
+	push %ebx
+	push %eax
+	xor %ebp, %ebp
 	call kmain
 
 	/*
@@ -104,9 +129,25 @@ _start:
 1:	hlt
 	jmp 1b
 
-
 /*
 Set the size of the _start symbol to the current location '.' minus its start.
 This is useful when debugging or when you implement call tracing.
 */
-.size _start, . - _start
+
+.section .data
+.align 4096
+.global initial_page_dir
+initial_page_dir:
+.long 0b10000011
+.rept 768
+	.long 0
+.endr
+.long (0 << 22) | 0b10000011
+.long (1 << 22) | 0b10000011
+.long (2 << 22) | 0b10000011
+.long (3 << 22) | 0b10000011
+.rept 256-4
+	.long 0
+.endr
+
+//.size _start, . - _start

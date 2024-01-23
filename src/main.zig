@@ -1,6 +1,9 @@
 const Kernel = @import("kernel/kernel.zig");
 
-export fn kmain() noreturn {
-    Kernel.kernelMain();
+const MultiBoot = @import("kernel/multiboot.zig");
+
+export fn kmain(magic: u32, bootInfo: *MultiBoot.multiboot_info) noreturn {
+    _ = magic;
+    Kernel.kernelMain(bootInfo);
     while (true) {}
 }
