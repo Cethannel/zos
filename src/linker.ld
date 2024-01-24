@@ -1,48 +1,42 @@
-/* The bootloader will look at this image and start execution at the symbol
-   designated as the entry point. */
+/* Link.ld -- Linker script for the kernel - ensure everything goes in the */
+/*            Correct place.  */
+/*            Original file taken from Bran's Kernel Development */
+/*            tutorials: http://www.osdever.net/bkerndev/index.php. */
+
 ENTRY(_start)
- 
-/* Tell where the various sections of the object files will be put in the final
-   kernel image. */
 SECTIONS
 {
-  . = 0x100000;
+    . = 0x00100000;
 
-  .multiboot ALIGN(4K) :
-  {
-    *(.multiboot)
-  }
+    .multiboot ALIGN(4K): {
+        KEEP(*(.multiboot))
+        *(.boot)
+    }
 
-  .note.gnu.build-id ALIGN(4K) :
-  {
-    *(.note.gnu.build-id)
-  }
+    /*.note.gnu.build-id ALIGN(4K): {
+        *(.note.gnu.build-id)
+    }*/
 
-  .boot ALIGN(4K) :
-  {
-    *(.boot)
-  }
+    . += 0xC0000000;
 
-  . += 0xC0000000;
+	/* Add a symbol that indicates the start address of the kernel. */
+	.text ALIGN (4K) : AT (ADDR (.text) - 0xC0000000)
+	{
+		*(.text)
+	}
+	.rodata ALIGN (4K) : AT (ADDR (.rodata) - 0xC0000000)
+	{
+		*(.rodata)
+	}
+	.data ALIGN (4K) : AT (ADDR (.data) - 0xC0000000)
+	{
+		*(.data)
+	}
+	.bss ALIGN (4K) : AT (ADDR (.bss) - 0xC0000000)
+	{
+		*(COMMON)
+		*(.bss)
+	}
 
-  .text ALIGN(4K) : AT(ADDR(.text) - 0xC0000000)
-  {
-    *(.text)
-  }
-
-  .rodata ALIGN(4K) : AT(ADDR(.rodata) - 0xC0000000)
-  {
-    *(.rodata)
-  }
-
-  .data ALIGN(4K) : AT(ADDR(.data) - 0xC0000000)
-  {
-    *(.data)
-  }
-
-  .bss ALIGN(4K) : AT(ADDR(.bss) - 0xC0000000)
-  {
-    *(COMMON)
-    *(.bss)
-  }
+    _kernel_end = .;
 }

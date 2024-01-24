@@ -19,6 +19,7 @@ pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
     IDT.new_init();
     Timer.init();
     Keyboard.init();
+
     Memory.init(boot_info);
 
     kstd.printf("Hello, kernel world!\n", .{});

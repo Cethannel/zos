@@ -55,3 +55,22 @@ pub const MULTIBOOT_MEMORY_RESERVED = 2;
 pub const MULTIBOOT_MEMORY_ACPI_RECLAIMABLE = 3;
 pub const MULTIBOOT_MEMORY_NVS = 4;
 pub const MULTIBOOT_MEMORY_BADRAM = 5;
+
+const MultibootHeader = extern struct {
+    magic: u32, // Must be equal to header magic number.
+    flags: u32, // Feature flags.
+    checksum: u32, // Above fields plus this one must equal 0 mod 2^32.
+};
+
+export const multiboot_header align(4) linksection(".multiboot") = multiboot: {
+    const MAGIC: u32 = 0x1BADB002; // Magic number for validation.
+    const ALIGN: u32 = 1 << 0; // Align loaded modules.
+    const MEMINFO: u32 = 1 << 1; // Receive a memory map from the bootloader.
+    const FLAGS: u32 = ALIGN | MEMINFO; // Combine the flags.
+
+    break :multiboot MultibootHeader{
+        .magic = MAGIC,
+        .flags = FLAGS,
+        .checksum = ~(MAGIC +% FLAGS) +% 1,
+    };
+};

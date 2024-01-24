@@ -34,6 +34,8 @@ pub fn build(b: *std.Build) void {
         .use_lld = true,
     });
 
+    kernel.code_model = .kernel;
+
     kernel.addAssemblyFile(LazyPath.relative("src/boot.S"));
     kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/gdt.S"));
     kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/interrupts.S"));
