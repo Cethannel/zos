@@ -13,3 +13,12 @@ inb:
 		mov +4(%esp), %edx  // Fetch the port parameter.
 		inb %dx, %al        // Do the inb instruction.
 		ret
+
+.globl invalidate
+.type invalidate, @function
+invalidate:
+    pushl %ebp
+		movl %esp, %ebp
+		invlpg 8(%ebp)
+		leave
+		ret

@@ -39,6 +39,7 @@
             qemu
             zigpkgs."0.11.0"
             grub2
+            bochs
           ];
         };
 

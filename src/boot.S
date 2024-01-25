@@ -37,8 +37,8 @@ _start:
     or $0x80000000, %ecx
     mov %ecx, %cr0
 
-    mov $higher_half, %eax
-    jmp *%eax
+    mov $higher_half, %ecx
+    jmp *%ecx
 
 .section .text
 higher_half:

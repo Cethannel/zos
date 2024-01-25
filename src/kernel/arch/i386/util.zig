@@ -20,3 +20,7 @@ pub const InterruptRegisters = extern struct {
 
 pub extern fn outb(port: u16, value: u8) void;
 pub extern fn inb(port: u16) u8;
+
+pub fn ceil_div(a: u32, b: u32) u32 {
+    return (a + b - 1) / b;
+}

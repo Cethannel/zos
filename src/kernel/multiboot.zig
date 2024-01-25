@@ -60,6 +60,11 @@ const MultibootHeader = extern struct {
     magic: u32, // Must be equal to header magic number.
     flags: u32, // Feature flags.
     checksum: u32, // Above fields plus this one must equal 0 mod 2^32.
+    graphics_things: [5]u32, // Only valid if MULTIBOOT_VIDEO_MODE is set.
+    other_thing: u32,
+    width: u32,
+    height: u32,
+    depth: u32,
 };
 
 export const multiboot_header align(4) linksection(".multiboot") = multiboot: {
@@ -72,5 +77,10 @@ export const multiboot_header align(4) linksection(".multiboot") = multiboot: {
         .magic = MAGIC,
         .flags = FLAGS,
         .checksum = ~(MAGIC +% FLAGS) +% 1,
+        .graphics_things = .{ 0, 0, 0, 0, 0 },
+        .other_thing = 0,
+        .width = 800,
+        .height = 600,
+        .depth = 32,
     };
 };
