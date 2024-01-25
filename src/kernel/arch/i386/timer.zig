@@ -21,6 +21,10 @@ pub fn init() void {
     //kstd.print("Timer initialized\n", .{});
 }
 
+pub fn getTicks() u64 {
+    return ticks;
+}
+
 fn onIrq0(regs: *InterruptRegisters) void {
     _ = regs;
     ticks += 1;

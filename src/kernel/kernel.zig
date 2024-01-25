@@ -30,6 +30,16 @@ pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
 
     Memory.init(boot_info.mem_upper * 1024, physicalAllocStart);
 
+    kstd.printf("Hello, kernel World!\n", .{});
+
+    const tick = Timer.getTicks();
+
+    while (Timer.getTicks() < tick + 100) {
+        asm volatile ("hlt");
+    }
+
+    TTYi.terminal_write("Hello, kernel World!\n");
+
     while (true) {
         asm volatile ("hlt");
     }
