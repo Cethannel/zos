@@ -1,8 +1,11 @@
 const fmt = @import("std").fmt;
 const Writer = @import("std").io.Writer;
 const vga_color = @import("vga.zig").vga_color;
+const Memory = @import("memory.zig");
 const vga_entry_color = @import("vga.zig").vga_entry_color;
 const vga_entry = @import("vga.zig").vga_entry;
+
+const mem = @import("std").mem;
 
 const VGA_WIDTH = 80;
 const VGA_HEIGHT = 25;
@@ -10,8 +13,8 @@ const VGA_SIZE = VGA_WIDTH * VGA_HEIGHT;
 
 var terminal_row: u8 = 0;
 var terminal_column: u8 = 0;
-var terminal_color = vga_entry_color(.VGA_COLOR_LIGHT_GREY, .VGA_COLOR_BLACK);
-const terminal_buffer = @as([*]volatile u16, @ptrFromInt(0xC00B8000));
+pub var terminal_color = vga_entry_color(.VGA_COLOR_LIGHT_GREY, .VGA_COLOR_BLACK);
+const terminal_buffer: [*]u16 = @ptrFromInt(0xC00B8000);
 const basic_color = vga_entry_color(vga_color.VGA_COLOR_LIGHT_GREY, vga_color.VGA_COLOR_BLACK);
 
 fn terminal_setcolor(color: u8) void {
@@ -22,12 +25,12 @@ pub fn clear() void {
     @memset(terminal_buffer[0..VGA_SIZE], vga_entry(' ', basic_color));
 }
 
-fn terminal_putentryat(c: u8, color: u8, x: usize, y: usize) void {
+pub fn terminal_putentryat(c: u8, color: u8, x: usize, y: usize) void {
     const index = y * VGA_WIDTH + x;
     terminal_buffer[index] = vga_entry(c, color);
 }
 
-fn terminal_putchar(c: u8) void {
+pub fn terminal_putchar(c: u8) void {
     if (c == '\n') {
         new_line();
         return;
@@ -78,7 +81,7 @@ fn clear_row(row: usize) void {
     }
 }
 
-fn terminal_write(s: []const u8) void {
+pub fn terminal_write(s: []const u8) void {
     for (0..s.len) |i| {
         terminal_putchar(s[i]);
     }

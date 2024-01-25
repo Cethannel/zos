@@ -18,7 +18,7 @@ pub fn init() void {
     outb(0x40, (divisor & 0xFF));
     outb(0x40, ((divisor >> 8) & 0xFF));
 
-    kstd.print("Timer initialized\n", .{});
+    //kstd.print("Timer initialized\n", .{});
 }
 
 fn onIrq0(regs: *InterruptRegisters) void {

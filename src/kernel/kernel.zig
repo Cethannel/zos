@@ -18,6 +18,8 @@ pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
 
     GDT.init();
 
+    kstd.printf("Intializing IDT\n", .{});
+
     IDT.new_init();
     Timer.init();
     Keyboard.init();
@@ -26,17 +28,7 @@ pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
     var fff: u32 = 0xFFF;
     const physicalAllocStart = (mod1 + 0xFFF) & ~fff;
 
-    //TTYi.write_test();
-
     Memory.init(boot_info.mem_upper * 1024, physicalAllocStart);
-
-    var ptr: usize = 0xC00B8000;
-
-    var out = Memory.get_physaddr(ptr);
-
-    kstd.printf("Physical address of VGA buffer: {x}\n", .{out});
-
-    kstd.printf("Hello, kernel world!\n", .{});
 
     while (true) {
         asm volatile ("hlt");
