@@ -50,3 +50,17 @@ fn memset(ptr: [*]u8, value: u8, count: usize) void {
         ptri += 1;
     }
 }
+
+pub fn get_physaddr(virtualaddr: usize) usize {
+    var pdindex: u32 = virtualaddr >> 22;
+    var ptindex: u32 = virtualaddr >> 12 & 0x03FF;
+
+    //var pd: *u32 = 0xFFFFF000;
+    // Here you need to check whether the PD entry is present.
+
+    var pt: [*]u32 = @ptrFromInt((0xFFC00000) + (0x400 * pdindex));
+    // Here you need to check whether the PT entry is present.
+
+    var fff: u32 = 0xFFF;
+    return ((pt[ptindex] & ~fff) + (virtualaddr & 0xFFF));
+}

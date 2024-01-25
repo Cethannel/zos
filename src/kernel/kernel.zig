@@ -30,6 +30,12 @@ pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
 
     Memory.init(boot_info.mem_upper * 1024, physicalAllocStart);
 
+    var ptr: usize = 0xC00B8000;
+
+    var out = Memory.get_physaddr(ptr);
+
+    kstd.printf("Physical address of VGA buffer: {x}\n", .{out});
+
     kstd.printf("Hello, kernel world!\n", .{});
 
     while (true) {
