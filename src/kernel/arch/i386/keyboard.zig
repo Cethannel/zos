@@ -3,7 +3,7 @@ const Interrupt = @import("interrupts.zig");
 const kstd = @import("../../kernel_std.zig");
 
 pub fn init() void {
-    Interrupt.irq_install_handler(1, keyboardHandler);
+    //Interrupt.irq_install_handler(1, keyboardHandler);
 }
 
 var capsOn = false;
@@ -11,8 +11,8 @@ var capsLock = false;
 
 fn keyboardHandler(regs: *Util.InterruptRegisters) void {
     _ = regs;
-    var scancode = Util.inb(0x60) & 0x7F;
-    var pressed = (Util.inb(0x60) & 0x80) == 0;
+    const scancode = Util.inb(0x60) & 0x7F;
+    const pressed = (Util.inb(0x60) & 0x80) == 0;
 
     switch (scancode) {
         1, 29, 56, 59, 60, 61, 62, 63, 64, 65, 66, 67 => {},

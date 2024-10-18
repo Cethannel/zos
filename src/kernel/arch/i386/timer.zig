@@ -9,7 +9,6 @@ const FREQUENCY: u64 = 100;
 
 pub fn init() void {
     ticks = 0;
-    Interrups.irq_install_handler(0, onIrq0);
 
     const divisor: u32 = 1193180 / FREQUENCY;
 

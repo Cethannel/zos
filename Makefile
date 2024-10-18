@@ -17,10 +17,10 @@ isodir/boot/myos.bin: zig-out/bin/zig-os isodir/boot
 	cp zig-out/bin/zig-os isodir/boot/myos.bin
 
 myos.iso: isodir/boot/myos.bin isodir/boot/grub/grub.cfg
-	grub-mkrescue -o myos.iso isodir
+	grub2-mkrescue -o myos.iso isodir
 
 bochs: myos.iso
-	bochs -f bochs -q
+	bochs-debugger -q
 
 run: myos.iso
 	qemu-system-x86_64 -cdrom myos.iso

@@ -1,7 +1,6 @@
 const std = @import("std");
 const Target = std.Target;
 const CrossTarget = std.zig.CrossTarget;
-const LazyPath = std.build.LazyPath;
 
 const x86_64 = CrossTarget{
     .cpu_arch = Target.Cpu.Arch.x86,
@@ -17,7 +16,7 @@ pub fn build(b: *std.Build) void {
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
-    const target = x86_64;
+    const target = b.resolveTargetQuery(x86_64);
 
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
@@ -28,20 +27,20 @@ pub fn build(b: *std.Build) void {
         .name = "zig-os",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
         .use_lld = true,
     });
 
-    kernel.code_model = .kernel;
+    //kernel.code_model = .kernel;
 
-    kernel.addAssemblyFile(LazyPath.relative("src/boot.S"));
-    kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/gdt.S"));
-    kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/interrupts.S"));
-    kernel.addAssemblyFile(LazyPath.relative("src/kernel/arch/i386/util.S"));
+    kernel.addAssemblyFile(b.path("src/boot.S"));
+    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/gdt.S"));
+    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/interrupts.S"));
+    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/util.S"));
 
-    kernel.setLinkerScript(LazyPath.relative("src/linker.ld"));
+    kernel.setLinkerScript(b.path("src/linker.ld"));
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

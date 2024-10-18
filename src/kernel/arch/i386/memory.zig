@@ -59,16 +59,16 @@ pub fn memset(ptr: [*]u8, value: u8, count: usize) void {
 }
 
 pub fn get_physaddr(virtualaddr: usize) usize {
-    var pdindex: u32 = virtualaddr >> 22;
-    var ptindex: u32 = virtualaddr >> 12 & 0x03FF;
+    const pdindex: u32 = virtualaddr >> 22;
+    const ptindex: u32 = virtualaddr >> 12 & 0x03FF;
 
-    //var pd: *u32 = 0xFFFFF000;
+    //const pd: *u32 = 0xFFFFF000;
     // Here you need to check whether the PD entry is present.
 
-    var pt: [*]u32 = @ptrFromInt((0xFFC00000) + (0x400 * pdindex));
+    const pt: [*]u32 = @ptrFromInt((0xFFC00000) + (0x400 * pdindex));
     // Here you need to check whether the PT entry is present.
 
-    var fff: u32 = 0xFFF;
+    const fff: u32 = 0xFFF;
     return ((pt[ptindex] & ~fff) + (virtualaddr & 0xFFF));
 }
 
@@ -84,10 +84,10 @@ pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
 fn map_page(physaddr: u32, virtualaddr: u32, flags: u32) void {
     // Make sure that both addresses are page-aligned.
 
-    var pdindex: u32 = virtualaddr >> 22;
-    var ptindex: u32 = virtualaddr >> 12 & 0x03FF;
+    const pdindex: u32 = virtualaddr >> 22;
+    const ptindex: u32 = virtualaddr >> 12 & 0x03FF;
 
-    var pd: [*]u32 = @ptrCast(&page_dirs[pdindex]);
+    const pd: [*]u32 = @ptrCast(&page_dirs[pdindex]);
     _ = pd;
     // Here you need to check whether the PD entry is present.
     // When it is not present, you need to create a new empty PT and
@@ -108,7 +108,7 @@ fn allocate_page_frame() u32 {
     var page_frame: u32 = 0;
     var page_frame_index: u32 = 0;
     while (page_frame_index < NUM_PAGE_FRAMES) : (page_frame_index += 1) {
-        var anded: u32 = (@as(u32, 1) << @intCast(page_frame_index % 8));
+        const anded: u32 = (@as(u32, 1) << @intCast(page_frame_index % 8));
         if (physical_memory_bitmap[page_frame_index / 8] & anded == 0) {
             page_frame = page_frame_index;
             break;
