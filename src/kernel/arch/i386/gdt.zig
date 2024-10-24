@@ -1,5 +1,6 @@
 const kstd = @import("../../kernel_std.zig");
 const Memory = @import("memory.zig");
+const x86 = @import("x86.zig");
 
 pub const KERNEL_CODE = 0x08;
 pub const KERNEL_DATA = 0x10;
@@ -7,17 +8,20 @@ pub const USER_CODE = 0x18;
 pub const USER_DATA = 0x20;
 pub const TSS_DESC = 0x28;
 
+// Privilege level of segment selector.
 pub const KERNEL_RPL = 0b00;
 pub const USER_RPL = 0b11;
 
+// Access byte values.
 const KERNEL = 0x90;
 const USER = 0xF0;
 const CODE = 0x0A;
 const DATA = 0x02;
 const TSS_ACCESS = 0x89;
 
-const PROTECTED = (1 << 2);
-const BLOCKS_4K = (1 << 3);
+// Segment flags.
+const PROTECTED: u4 = (1 << 2);
+const BLOCKS_4K: u4 = (1 << 3);
 
 extern fn gdt_load(*GdtPtr) void;
 
@@ -26,75 +30,103 @@ const GdtPtr = packed struct {
     base: u32,
 };
 
-const GdtEntry = packed struct {
-    Limit0: u16,
-    Base0: u16,
-    Base1: u8,
-    AccessByte: u8,
-    Flags: u8,
-    Base2: u8,
+const GDTEntry = packed struct {
+    limit_low: u16,
+    base_low: u16,
+    base_mid: u8,
+    access: u8,
+    limit_high: u4,
+    flags: u4,
+    base_high: u8,
 };
 
-const Gdt align(0x1000) = packed struct {
-    null: GdtEntry, // 0x00
-    kernel_code: GdtEntry, // 0x08
-    kernel_data: GdtEntry, // 0x10
-
+const GDTRegister = packed struct {
+    limit: u16,
+    base: *const GDTEntry,
 };
 
-const defaultGDT align(0x1000) = Gdt{
-    .null = .{
-        .Limit0 = 0,
-        .Base0 = 0,
-        .Base1 = 0,
-        .AccessByte = 0x00,
-        .Flags = 0x00,
-        .Base2 = 0,
-    }, // null segment
-    .kernel_code = .{
-        .Limit0 = 0,
-        .Base0 = 0,
-        .Base1 = 0,
-        .AccessByte = 0x9a,
-        .Flags = 0xcf,
-        .Base2 = 0,
-    }, // kernel code
-    .kernel_data = .{
-        .Limit0 = 0,
-        .Base0 = 0,
-        .Base1 = 0,
-        .AccessByte = 0x92,
-        .Flags = 0xcf,
-        .Base2 = 0,
-    }, // kernel data
+// Task State Segment.
+const TSS = packed struct {
+    unused1: u32,
+    esp0: u32, // Stack to use when coming to ring 0 from ring > 0.
+    ss0: u32, // Segment to use when coming to ring 0 from ring > 0.
+    unused2: @Vector(22, u32),
+    unused3: u16,
+    iomap_base: u16, // Base of the IO bitmap.
 };
 
-var GDTStruct: GdtPtr = .{
-    .base = undefined,
-    .limit = undefined,
-};
-
-pub fn init() void {
-    //asm volatile ("cli");
-    //defer asm volatile ("sti");
-
-    GDTStruct.limit = (@sizeOf(Gdt)) - 1;
-    GDTStruct.base = @intFromPtr(&defaultGDT);
-    gdt_load(&GDTStruct);
+////
+// Generate a GDT entry structure.
+//
+// Arguments:
+//     base: Beginning of the segment.
+//     limit: Size of the segment.
+//     access: Access byte.
+//     flags: Segment flags.
+//
+fn makeEntry(base: usize, limit: usize, access: u8, flags: u4) GDTEntry {
+    return GDTEntry{
+        .limit_low = @truncate(limit),
+        .base_low = @truncate(base),
+        .base_mid = @truncate(base >> 16),
+        .access = @truncate(access),
+        .limit_high = @truncate(limit >> 16),
+        .flags = @truncate(flags),
+        .base_high = @truncate(base >> 24),
+    };
 }
 
-fn createDescriptor(base: u32, limit: u32, flag: u16) void {
-    var descriptor: u64 = 0;
+// Fill in the GDT.
+var gdt align(4) = [_]GDTEntry{
+    makeEntry(0, 0, 0, 0),
+    makeEntry(0, 0xFFFFF, KERNEL | CODE, PROTECTED | BLOCKS_4K),
+    makeEntry(0, 0xFFFFF, KERNEL | DATA, PROTECTED | BLOCKS_4K),
+    makeEntry(0, 0xFFFFF, USER | CODE, PROTECTED | BLOCKS_4K),
+    makeEntry(0, 0xFFFFF, USER | DATA, PROTECTED | BLOCKS_4K),
+    makeEntry(0, 0, 0, 0), // TSS (fill in at runtime).
+};
 
-    descriptor = limit & 0x000F0000; // set limit bits 19:16
-    descriptor |= (flag << 8) & 0x00F0FF00; // set type, p, dpl, s, g, d/b, l and avl fields
-    descriptor |= (base >> 16) & 0x000000FF; // set base bits 23:16
-    descriptor |= base & 0xFF000000; // set base bits 31:24
+// GDT descriptor register pointing at the GDT.
+var gdtr = GDTRegister{
+    .limit = @sizeOf(@TypeOf(gdt)),
+    .base = undefined, // &gdt[0],
+};
 
-    descriptor <<= 32;
+// Instance of the Task State Segment.
+var tss = TSS{
+    .unused1 = 0,
+    .esp0 = undefined,
+    .ss0 = KERNEL_DATA,
+    .unused2 = ([_]u32{0} ** 22)[0..22].*,
+    .unused3 = 0,
+    .iomap_base = @sizeOf(TSS),
+};
 
-    // Create the low 32 bit segment
-    descriptor |= base << 16; // set base bits 15:0
-    descriptor |= limit & 0x0000FFFF; // set limit bits 15:0
+////
+// Set the kernel stack to use when interrupting user mode.
+//
+// Arguments:
+//     esp0: Stack for Ring 0.
+//
+pub fn setKernelStack(esp0: usize) void {
+    tss.esp0 = esp0;
+}
 
+////
+// Load the GDT into the system registers (defined in assembly).
+//
+// Arguments:
+//     gdtr: Pointer to the GDTR.
+//
+extern fn loadGDT(gdtr: *const GDTRegister) void;
+
+pub fn init() void {
+    gdtr.base = &gdt[0];
+    //loadGDT(@ptrFromInt(0x100));
+    loadGDT(&gdtr);
+
+    // Initialize TSS.
+    const tss_entry = makeEntry(@intFromPtr(&tss), @sizeOf(TSS) - 1, TSS_ACCESS, PROTECTED);
+    gdt[TSS_DESC / @sizeOf(GDTEntry)] = tss_entry;
+    x86.ltr(TSS_DESC);
 }

@@ -39,6 +39,7 @@ pub fn build(b: *std.Build) void {
     kernel.addAssemblyFile(b.path("src/kernel/arch/i386/gdt.S"));
     kernel.addAssemblyFile(b.path("src/kernel/arch/i386/interrupts.S"));
     kernel.addAssemblyFile(b.path("src/kernel/arch/i386/util.S"));
+    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/isr.S"));
 
     kernel.setLinkerScript(b.path("src/linker.ld"));
 

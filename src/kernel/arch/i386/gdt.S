@@ -1,26 +1,24 @@
-.intel_syntax noprefix
-.section .text
-	.global gdt_load
+.type loadGDT, @function
+.global loadGDT
 
-gdt_load:
-	# Copy the first argument in esp + 4 into eax
-	mov eax, [esp + 4] # EAX is a pointer to a 48 bit struct
-	
-	# Load the new GDT by dereferencing the pointer contained
-	# in register eax, which points to the 48 bit struct.
-	lgdt [eax]
-	
-	# Set the data segment registers
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	mov ss, ax
+////
+// Load the GDT into the system registers.
+//
+// Arguments:
+//     gdtr: Pointer to the GDTR.
+//
+loadGDT:
+    mov +4(%esp), %eax  // Fetch the gdtr parameter.
+    lgdt (%eax)         // Load the new GDT.
 
-	jmp .flush
-	# mov eax, 0 # Handle the return code
-	ret
+    // Reload data segments (GDT entry 2: kernel data).
+    mov $0x10, %ax
+    mov %ax, %ds
+  	mov %ax, %es
+  	mov %ax, %fs
+  	mov %ax, %gs
+  	mov %ax, %ss
 
-.flush:
-	ret
+    // Reload code segment (GDT entry 1: kernel code).
+    ljmp $0x08, $1f
+1:  ret

@@ -3,3 +3,4 @@ myos.iso
 zig-cache
 zig-out
 .zig-cache
+.ccls-cache

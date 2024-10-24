@@ -5,14 +5,15 @@ const IDT = @import("arch/i386/idt.zig");
 const Timer = @import("arch/i386/timer.zig");
 const Keyboard = @import("arch/i386/keyboard.zig");
 const Memory = @import("arch/i386/memory.zig");
+const pmem = @import("arch/i386/pmem.zig");
 const MultiBoot = @import("multiboot.zig");
+const x86 = @import("arch/i386/x86.zig");
 
 const TTYi = @import("arch/i386/tty.zig");
 
 export const interthing: u8 = 0;
 
-pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
-    _ = boot_info;
+pub fn kernelMain(boot_info: *const MultiBoot.MultibootInfo) void {
     TTY.terminal_initialize();
 
     kstd.printf("Intializing GDT\n", .{});
@@ -23,35 +24,17 @@ pub fn kernelMain(boot_info: *MultiBoot.multiboot_info) void {
 
     IDT.init();
 
-    asm volatile (
-        \\ .loop:
-        \\ jmp .loop
-    );
+    //kstd.printf("Initializeing Timer\n", .{});
+    //Timer.init();
 
-    kstd.printf("Initializeing Timer\n", .{});
-    Timer.init();
-
-    kstd.printf("Initializeing Keyboard\n", .{});
+    kstd.printf("Initializing Keyboard\n", .{});
     Keyboard.init();
 
-    kstd.printf("Initializeing Memory\n", .{});
-    //const mod1 = boot_info.mods_addr + 4;
-    //const fff: u32 = 0xFFF;
-    //const physicalAllocStart = (mod1 + 0xFFF) & ~fff;
+    _ = boot_info;
 
-    //Memory.init(boot_info.mem_upper * 1024, physicalAllocStart);
-
-    kstd.printf("Hello, kernel World!\n", .{});
-
-    const tick = Timer.getTicks();
-
-    while (Timer.getTicks() < tick + 100) {
-        asm volatile ("hlt");
-    }
-
-    TTYi.terminal_write("Hello, kernel World!\n");
-
-    while (true) {
-        asm volatile ("hlt");
-    }
+    asm volatile (
+        \\ kmloop:
+        \\  hlt
+        \\  jmp kmloop
+    );
 }

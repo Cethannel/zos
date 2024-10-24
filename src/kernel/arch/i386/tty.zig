@@ -4,6 +4,7 @@ const vga_color = @import("vga.zig").vga_color;
 const Memory = @import("memory.zig");
 const vga_entry_color = @import("vga.zig").vga_entry_color;
 const vga_entry = @import("vga.zig").vga_entry;
+const x86 = @import("x86.zig");
 
 const mem = @import("std").mem;
 
@@ -113,4 +114,12 @@ fn callback(_: void, string: []const u8) error{}!usize {
 
 pub fn printf(comptime format: []const u8, args: anytype) void {
     fmt.format(writer, format, args) catch unreachable;
+}
+
+pub fn panic(comptime format: []const u8, args: anytype) noreturn {
+    printf("\n", .{});
+    terminal_color = vga_entry_color(.VGA_COLOR_WHITE, .VGA_COLOR_BLACK);
+    printf(format, args);
+
+    x86.hang();
 }

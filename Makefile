@@ -1,6 +1,11 @@
 ZIG_FILES := $(shell find src -name '*.zig')
 ASM_FILES := $(shell find src -name '*.S')
 
+#MKRESCUE=grub2-mkrescue
+MKRESCUE=grub-mkrescue
+#BOCHS=bochs-debugger
+BOCHS=bochs
+
 zig-out/bin/zig-os: $(ZIG_FILES) $(ASM_FILES)
 	zig build
 
@@ -17,10 +22,10 @@ isodir/boot/myos.bin: zig-out/bin/zig-os isodir/boot
 	cp zig-out/bin/zig-os isodir/boot/myos.bin
 
 myos.iso: isodir/boot/myos.bin isodir/boot/grub/grub.cfg
-	grub2-mkrescue -o myos.iso isodir
+	$(MKRESCUE) -o myos.iso isodir
 
 bochs: myos.iso
-	bochs-debugger -q
+	$(BOCHS) -q
 
 run: myos.iso
 	qemu-system-x86_64 -cdrom myos.iso

@@ -1,3 +1,6 @@
+const tty = @import("tty.zig");
+const std = @import("std");
+
 pub const InterruptRegisters = extern struct {
     cr2: u32,
     ds: u32,
@@ -23,4 +26,10 @@ pub extern fn inb(port: u16) u8;
 
 pub fn ceil_div(a: u32, b: u32) u32 {
     return (a + b - 1) / b;
+}
+
+pub inline fn panic(msg: []const u8) noreturn {
+    tty.printf("PANIC: {s}\n", .{msg});
+    asm volatile ("cli; int3");
+    while (true) {}
 }

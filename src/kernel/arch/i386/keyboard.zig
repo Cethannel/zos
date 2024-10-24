@@ -1,16 +1,19 @@
+const std = @import("std");
 const Util = @import("util.zig");
 const Interrupt = @import("interrupts.zig");
+const x86 = @import("x86.zig");
 const kstd = @import("../../kernel_std.zig");
 
 pub fn init() void {
-    //Interrupt.irq_install_handler(1, keyboardHandler);
+    Interrupt.registerIRQ(1, keyboardHandler);
 }
 
 var capsOn = false;
 var capsLock = false;
 
-fn keyboardHandler(regs: *Util.InterruptRegisters) void {
-    _ = regs;
+const conv = std.builtin.CallingConvention.Interrupt;
+
+fn keyboardHandler() void {
     const scancode = Util.inb(0x60) & 0x7F;
     const pressed = (Util.inb(0x60) & 0x80) == 0;
 
