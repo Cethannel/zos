@@ -82,6 +82,19 @@ pub const MultibootInfo = extern struct {
   framebuffer_height: u32,
   framebuffer_bpp: u8,
   framebuffer_type: u8,
+
+  
+    ////
+    // Return the ending address of the last module.
+    //
+    pub fn lastModuleEnd(self: *const MultibootInfo) usize {
+        if (self.mods_count > 0) {
+            const mods: [*]MultibootModule = @ptrFromInt(self.mods_addr);
+            return mods[self.mods_count - 1].mod_end;
+        } else {
+            return self.mods_addr + 4;
+        }
+    }
 };
 
 pub const MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED=0;
@@ -131,6 +144,15 @@ const MultibootHeader = extern struct {
     magic:    u32,  // Must be equal to header magic number.
     flags:    u32,  // Feature flags.
     checksum: u32,  // Above fields plus this one must equal 0 mod 2^32.
+    header_addr: u32 = 0,
+    load_addr: u32 = 0,
+    load_end_addr: u32 = 0,
+    bss_end_addr: u32 = 0,
+    entry_addr: u32 = 0,
+    mode_type: u32 = 0,
+    width: u32 = 800,
+    height: u32 = 600,
+    depth: u32 = 32,
 };
 // NOTE: this structure is incomplete.
 

@@ -128,10 +128,10 @@ pub inline fn ltr(desc: u16) void {
 //     v_addr: Virtual address to invalidate.
 //
 pub inline fn invlpg(v_addr: usize) void {
+    @setRuntimeSafety(false);
     asm volatile ("invlpg (%[v_addr])"
         :
         : [v_addr] "r" (v_addr),
-        : "memory"
     );
 }
 
@@ -158,6 +158,43 @@ pub inline fn readCR3() usize {
 //
 pub inline fn writeCR3(pd: usize) void {
     asm volatile ("mov %[pd], %%cr3"
+        :
+        : [pd] "r" (pd),
+    );
+}
+////
+// Read the CR4 control register.
+//
+pub inline fn readCR4() usize {
+    return asm volatile ("mov %%cr4, %[result]"
+        : [result] "=r" (-> usize),
+    );
+}
+
+////
+// Write the CR4 control register.
+//
+pub inline fn writeCR4(pd: usize) void {
+    asm volatile ("mov %[pd], %%cr4"
+        :
+        : [pd] "r" (pd),
+    );
+}
+
+////
+// Read the CR0 control register.
+//
+pub inline fn readCR0() usize {
+    return asm volatile ("mov %%cr0, %[result]"
+        : [result] "=r" (-> usize),
+    );
+}
+
+////
+// Write the CR0 control register.
+//
+pub inline fn writeCR0(pd: usize) void {
+    asm volatile ("mov %[pd], %%cr0"
         :
         : [pd] "r" (pd),
     );

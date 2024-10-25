@@ -3,4 +3,3 @@ vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
 ata0-slave: type=cdrom, path=myos.iso, status=inserted
 boot:cdrom
 display_library: x, options = "gui_debug"
-magic_break: enabled=1

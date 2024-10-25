@@ -44,6 +44,7 @@ fn unhandled() noreturn {
 }
 
 export fn interruptDispatch() void {
+    @setRuntimeSafety(false);
     const n: u8 = @intCast(isr.context.interrupt_n);
 
     switch (n) {
@@ -186,11 +187,14 @@ fn remapPIC() void {
 }
 
 pub fn init() void {
-    registerIRQ(0, dotprint);
+    registerIRQ(0, defaultTimer);
+    register(3, breakPoint);
     remapPIC();
     isr.install();
 }
 
-fn dotprint() void {
-    kstd.print(".", .{});
+fn breakPoint() void {
+    kstd.print("Got breakpoint: {}\n", .{isr.context.eflags});
 }
+
+fn defaultTimer() void {}

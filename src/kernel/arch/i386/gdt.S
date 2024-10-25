@@ -14,11 +14,17 @@ loadGDT:
     // Reload data segments (GDT entry 2: kernel data).
     mov $0x10, %ax
     mov %ax, %ds
-  	mov %ax, %es
-  	mov %ax, %fs
-  	mov %ax, %gs
-  	mov %ax, %ss
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+    mov %ax, %ss
 
     // Reload code segment (GDT entry 1: kernel code).
     ljmp $0x08, $1f
 1:  ret
+
+.global tss_flush
+tss_flush:
+   mov $0x2B, %ax
+   ltr %ax
+   ret

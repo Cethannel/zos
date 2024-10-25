@@ -30,11 +30,12 @@ _start:
     mov %ecx, %cr3
 
     mov %cr4, %ecx
-    or $0x00000010, %ecx
+    or $0x10, %ecx
     mov %ecx, %cr4
 
     mov %cr0, %ecx
     or $0x80000000, %ecx
+    //or $0x80000001, %ecx
     mov %ecx, %cr0
 
     mov $higher_half, %ecx

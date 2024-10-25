@@ -13,9 +13,9 @@ SECTIONS
         *(.boot)
     }
 
-    /*.note.gnu.build-id ALIGN(4K): {
+    .note.gnu.build-id ALIGN(4K): {
         *(.note.gnu.build-id)
-    }*/
+    }
 
     . += 0xC0000000;
 

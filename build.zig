@@ -21,7 +21,9 @@ pub fn build(b: *std.Build) void {
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{
+        .preferred_optimize_mode = .ReleaseFast,
+    });
 
     const kernel = b.addExecutable(.{
         .name = "zig-os",
@@ -39,7 +41,11 @@ pub fn build(b: *std.Build) void {
     kernel.addAssemblyFile(b.path("src/kernel/arch/i386/gdt.S"));
     kernel.addAssemblyFile(b.path("src/kernel/arch/i386/interrupts.S"));
     kernel.addAssemblyFile(b.path("src/kernel/arch/i386/util.S"));
-    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/isr.S"));
+    //kernel.addAssemblyFile(b.path("src/kernel/arch/i386/isr.S"));
+    kernel.addObjectFile(b.path("src/kernel/arch/i386/isr.o"));
+    kernel.addCSourceFile(.{
+        .file = b.path("src/kernel/arch/i386/memory.c"),
+    });
 
     kernel.setLinkerScript(b.path("src/linker.ld"));
 

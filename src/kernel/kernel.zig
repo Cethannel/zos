@@ -8,10 +8,11 @@ const Memory = @import("arch/i386/memory.zig");
 const pmem = @import("arch/i386/pmem.zig");
 const MultiBoot = @import("multiboot.zig");
 const x86 = @import("arch/i386/x86.zig");
+const speeker = @import("arch/i386/speeker.zig");
 
 const TTYi = @import("arch/i386/tty.zig");
 
-export const interthing: u8 = 0;
+export var interthing: u8 = 0;
 
 pub fn kernelMain(boot_info: *const MultiBoot.MultibootInfo) void {
     TTY.terminal_initialize();
@@ -22,19 +23,22 @@ pub fn kernelMain(boot_info: *const MultiBoot.MultibootInfo) void {
 
     kstd.printf("Intializing IDT\n", .{});
 
-    IDT.init();
-
-    //kstd.printf("Initializeing Timer\n", .{});
     //Timer.init();
+    IDT.init();
 
     kstd.printf("Initializing Keyboard\n", .{});
     Keyboard.init();
 
-    _ = boot_info;
+    const mod1: u32 = @as(*u32, @ptrFromInt(boot_info.mods_addr + 4)).*;
+    const physcalAllocStart: u32 = (mod1 + 0xFFF) & ~@as(u32, 0xFFF);
 
-    asm volatile (
-        \\ kmloop:
-        \\  hlt
-        \\  jmp kmloop
-    );
+    //speeker.beep();
+
+    //_ = physcalAllocStart;
+    _ = Memory;
+    Memory.init(boot_info.mem_upper * 1024, physcalAllocStart);
+
+    kstd.printf("Hello\n", .{});
+
+    while (true) {}
 }

@@ -1,4 +1,4 @@
-const TTY = @import("arch/i386/tty.zig");
+pub const TTY = @import("arch/i386/tty.zig");
 
 pub fn terminal_initialize() void {
     TTY.initialize();

@@ -17,14 +17,15 @@ pub fn init() void {
     outb(0x40, (divisor & 0xFF));
     outb(0x40, ((divisor >> 8) & 0xFF));
 
-    //kstd.print("Timer initialized\n", .{});
+    Interrups.registerIRQ(0, onIrq0);
+
+    kstd.print("Timer initialized\n", .{});
 }
 
 pub fn getTicks() u64 {
     return ticks;
 }
 
-fn onIrq0(regs: *InterruptRegisters) void {
-    _ = regs;
+fn onIrq0() void {
     ticks += 1;
 }

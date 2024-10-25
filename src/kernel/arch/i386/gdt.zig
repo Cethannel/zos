@@ -1,12 +1,13 @@
 const kstd = @import("../../kernel_std.zig");
 const Memory = @import("memory.zig");
 const x86 = @import("x86.zig");
+const std = @import("std");
 
 pub const KERNEL_CODE = 0x08;
 pub const KERNEL_DATA = 0x10;
 pub const USER_CODE = 0x18;
 pub const USER_DATA = 0x20;
-pub const TSS_DESC = 0x28;
+pub const TSS_DESC = 0x2B;
 
 // Privilege level of segment selector.
 pub const KERNEL_RPL = 0b00;
@@ -31,12 +32,11 @@ const GdtPtr = packed struct {
 };
 
 const GDTEntry = packed struct {
-    limit_low: u16,
+    limit: u16,
     base_low: u16,
     base_mid: u8,
     access: u8,
-    limit_high: u4,
-    flags: u4,
+    flags: u8,
     base_high: u8,
 };
 
@@ -47,12 +47,33 @@ const GDTRegister = packed struct {
 
 // Task State Segment.
 const TSS = packed struct {
-    unused1: u32,
-    esp0: u32, // Stack to use when coming to ring 0 from ring > 0.
-    ss0: u32, // Segment to use when coming to ring 0 from ring > 0.
-    unused2: @Vector(22, u32),
-    unused3: u16,
-    iomap_base: u16, // Base of the IO bitmap.
+    prev_tss: u32 = 0,
+    esp0: u32 = 0,
+    ss0: u32 = 0,
+    esp1: u32 = 0,
+    ss1: u32 = 0,
+    esp2: u32 = 0,
+    ss2: u32 = 0,
+    cr3: u32 = 0,
+    eip: u32 = 0,
+    eflags: u32 = 0,
+    eax: u32 = 0,
+    ecx: u32 = 0,
+    edx: u32 = 0,
+    ebx: u32 = 0,
+    esp: u32 = 0,
+    ebp: u32 = 0,
+    esi: u32 = 0,
+    edi: u32 = 0,
+    es: u32 = 0,
+    cs: u32 = 0,
+    ss: u32 = 0,
+    ds: u32 = 0,
+    fs: u32 = 0,
+    gs: u32 = 0,
+    ldt: u32 = 0,
+    trap: u32 = 0,
+    iomap_base: u32 = 0,
 };
 
 ////
@@ -64,25 +85,24 @@ const TSS = packed struct {
 //     access: Access byte.
 //     flags: Segment flags.
 //
-fn makeEntry(base: usize, limit: usize, access: u8, flags: u4) GDTEntry {
+fn makeEntry(base: u32, limit: u32, access: u8, flags: u8) GDTEntry {
     return GDTEntry{
-        .limit_low = @truncate(limit),
-        .base_low = @truncate(base),
-        .base_mid = @truncate(base >> 16),
-        .access = @truncate(access),
-        .limit_high = @truncate(limit >> 16),
-        .flags = @truncate(flags),
-        .base_high = @truncate(base >> 24),
+        .base_low = @truncate(base & 0xFFFF),
+        .base_mid = @truncate((base >> 16) & 0xFF),
+        .base_high = @truncate((base >> 24) & 0xFF),
+        .limit = @truncate(limit & 0xFFFF),
+        .flags = @as(u8, @truncate((limit >> 16 & 0x0F))) | (flags & 0xF0),
+        .access = access,
     };
 }
 
 // Fill in the GDT.
 var gdt align(4) = [_]GDTEntry{
     makeEntry(0, 0, 0, 0),
-    makeEntry(0, 0xFFFFF, KERNEL | CODE, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0xFFFFF, KERNEL | DATA, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0xFFFFF, USER | CODE, PROTECTED | BLOCKS_4K),
-    makeEntry(0, 0xFFFFF, USER | DATA, PROTECTED | BLOCKS_4K),
+    makeEntry(0, 0xFFFFFFFF, KERNEL | CODE, 0xCF),
+    makeEntry(0, 0xFFFFFFFF, KERNEL | DATA, 0xCF),
+    makeEntry(0, 0xFFFFFFFF, USER | CODE, 0xCF),
+    makeEntry(0, 0xFFFFFFFF, USER | DATA, 0xCF),
     makeEntry(0, 0, 0, 0), // TSS (fill in at runtime).
 };
 
@@ -94,11 +114,8 @@ var gdtr = GDTRegister{
 
 // Instance of the Task State Segment.
 var tss = TSS{
-    .unused1 = 0,
     .esp0 = undefined,
     .ss0 = KERNEL_DATA,
-    .unused2 = ([_]u32{0} ** 22)[0..22].*,
-    .unused3 = 0,
     .iomap_base = @sizeOf(TSS),
 };
 
@@ -120,13 +137,29 @@ pub fn setKernelStack(esp0: usize) void {
 //
 extern fn loadGDT(gdtr: *const GDTRegister) void;
 
+fn wrietTSS(ss0: u32, esp0: u32) void {
+    const base: u32 = @intFromPtr(&tss);
+    const limit = base + @sizeOf(TSS);
+    gdt[gdt.len - 1] = makeEntry(base, limit, 0xE9, 0x00);
+
+    tss = TSS{};
+    tss.ss0 = ss0;
+    tss.esp0 = esp0;
+    tss.cs = 0x08 | 0x3;
+    inline for ([_][]const u8{ "ds", "es", "fs", "gs" }) |field| {
+        @field(tss, field) = 0x10 | 0x3;
+    }
+}
+
 pub fn init() void {
     gdtr.base = &gdt[0];
+    gdtr.limit = @sizeOf(GDTEntry) * 6 - 1;
     //loadGDT(@ptrFromInt(0x100));
+    // Initialize TSS.
+    wrietTSS(0x10, 0x0);
     loadGDT(&gdtr);
 
-    // Initialize TSS.
-    const tss_entry = makeEntry(@intFromPtr(&tss), @sizeOf(TSS) - 1, TSS_ACCESS, PROTECTED);
-    gdt[TSS_DESC / @sizeOf(GDTEntry)] = tss_entry;
-    x86.ltr(TSS_DESC);
+    tss_flush();
 }
+
+extern fn tss_flush() void;

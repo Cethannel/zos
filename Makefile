@@ -22,10 +22,10 @@ isodir/boot/myos.bin: zig-out/bin/zig-os isodir/boot
 	cp zig-out/bin/zig-os isodir/boot/myos.bin
 
 myos.iso: isodir/boot/myos.bin isodir/boot/grub/grub.cfg
-	$(MKRESCUE) -o myos.iso isodir
+	$(MKRESCUE) --modules="fat" -o myos.iso isodir
 
 bochs: myos.iso
 	$(BOCHS) -q
 
 run: myos.iso
-	qemu-system-x86_64 -cdrom myos.iso
+	qemu-system-x86_64 -d 'int,cpu_reset,guest_errors' -D qemu.txt -cdrom myos.iso -audiodev alsa,id=speaker -machine pcspk-audiodev=speaker

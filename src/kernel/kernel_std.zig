@@ -13,7 +13,7 @@ pub fn kerror(comptime format: []const u8, args: anytype) void {
     TTY.printf(format, args);
 }
 
-pub fn kpanic(comptime format: []const u8, args: anytype) void {
+pub fn kpanic(comptime format: []const u8, args: anytype) noreturn {
     TTY.printf(format, args);
     util.panic("kpanic");
 }

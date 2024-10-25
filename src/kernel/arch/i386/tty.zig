@@ -3,7 +3,7 @@ const Writer = @import("std").io.Writer;
 const vga_color = @import("vga.zig").vga_color;
 const Memory = @import("memory.zig");
 const vga_entry_color = @import("vga.zig").vga_entry_color;
-const vga_entry = @import("vga.zig").vga_entry;
+pub const vga_entry = @import("vga.zig").vga_entry;
 const x86 = @import("x86.zig");
 
 const mem = @import("std").mem;
@@ -16,6 +16,7 @@ var terminal_row: u8 = 0;
 var terminal_column: u8 = 0;
 pub var terminal_color = vga_entry_color(.VGA_COLOR_LIGHT_GREY, .VGA_COLOR_BLACK);
 const terminal_buffer: [*]u16 = @ptrFromInt(0xC00B8000);
+//extern const terminal_buffer: [*c]volatile u16; // = @ptrFromInt(0xB8000);
 const basic_color = vga_entry_color(vga_color.VGA_COLOR_LIGHT_GREY, vga_color.VGA_COLOR_BLACK);
 
 fn terminal_setcolor(color: u8) void {
@@ -122,4 +123,15 @@ pub fn panic(comptime format: []const u8, args: anytype) noreturn {
     printf(format, args);
 
     x86.hang();
+}
+
+export fn puts(message: [*]u8) void {
+    var i: usize = 0;
+    while (message[i] != 0) : (i += 1) {
+        terminal_putchar(message[i]);
+    }
+}
+
+export fn putc(c: u8) void {
+    terminal_putchar(c);
 }

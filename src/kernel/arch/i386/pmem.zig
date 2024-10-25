@@ -65,9 +65,9 @@ pub fn initialize(info: *const multiboot.MultibootInfo) void {
     stack_end = x86.pageAlign(@intFromPtr(stack) + stack_size);
     tty.printf("Got sizes\n", .{});
 
-    var map: usize = info.mmap_addr;
-    while (map < info.mmap_addr + info.mmap_length) {
-        const entry: *multiboot.MultibootMMapEntry = @ptrFromInt(map);
+    var map = info.mmap_addr;
+    while (@intFromPtr(map) < @intFromPtr(info.mmap_addr) + info.mmap_length) {
+        const entry: *multiboot.MmapEntry = &map[0];
 
         // Calculate the start and end of this memory area.
         var start: usize = @truncate(entry.addr);
@@ -84,5 +84,5 @@ pub fn initialize(info: *const multiboot.MultibootInfo) void {
         map += entry.size + @sizeOf(@TypeOf(entry.size));
     }
 
-    tty.printf(" {d} MB", .{available() / (1024 * 1024)});
+    tty.printf(" {d} MB\n", .{available() / (1024 * 1024)});
 }

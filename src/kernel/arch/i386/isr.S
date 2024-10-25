@@ -1,8 +1,9 @@
-// Kernel stack for interrupt handling.
-KERNEL_STACK = 0x80000
-// GDT selectors.
-KERNEL_DS = 0x10
-USER_DS   = 0x23
+.global idt_flush
+idt_flush:
+	mov 4(%esp), %eax
+	lidt (%eax)
+	sti
+	ret
 
 // Template for the Interrupt Service Routines.
 .macro isrGenerate n
@@ -19,85 +20,138 @@ USER_DS   = 0x23
         jmp isrCommon  // Jump to the common handler.
 .endmacro
 
-// Common code for all Interrupt Service Routines.
-isrCommon:
-    pusha  // Save the registers state.
+.macro ISR_NOERRCODE n
+	.global isr\n
+	isr\n:
+		CLI
+		PUSH 0
+		PUSH \n
+		JMP isr_common_stub
+.endmacro
 
-    // Setup kernel data segment.
-    mov $KERNEL_DS, %ax
-    mov %ax, %ds
-    mov %ax, %es
+.macro ISR_ERRCODE n
+	.global isr\n
+	isr\n:
+		CLI
+		PUSH \n
+		JMP isr_common_stub
+.endmacro
 
-    // Save the pointer to the current context and switch to the kernel stack.
-    mov %esp, context
-    mov $KERNEL_STACK, %esp
+.macro IRQ n, a
+	.global irq\n
+	irq\n:
+		CLI
+		PUSH 0
+		PUSH \a
+		JMP irq_common_stub
+.endmacro
 
-    call interruptDispatch  // Handle the interrupt event.
+ISR_NOERRCODE 0
+ISR_NOERRCODE 1
+ISR_NOERRCODE 2
+ISR_NOERRCODE 3
+ISR_NOERRCODE 4
+ISR_NOERRCODE 5
+ISR_NOERRCODE 6
+ISR_NOERRCODE 7
 
-    // Restore the pointer to the context (of a different thread, potentially).
-    mov context, %esp
+ISR_ERRCODE 8
+ISR_NOERRCODE 9 
+ISR_ERRCODE 10
+ISR_ERRCODE 11
+ISR_ERRCODE 12
+ISR_ERRCODE 13
+ISR_ERRCODE 14
+ISR_NOERRCODE 15
+ISR_NOERRCODE 16
+ISR_NOERRCODE 17
+ISR_NOERRCODE 18
+ISR_NOERRCODE 19
+ISR_NOERRCODE 20
+ISR_NOERRCODE 21
+ISR_NOERRCODE 22
+ISR_NOERRCODE 23
+ISR_NOERRCODE 24
+ISR_NOERRCODE 25
+ISR_NOERRCODE 26
+ISR_NOERRCODE 27
+ISR_NOERRCODE 28
+ISR_NOERRCODE 29
+ISR_NOERRCODE 30
+ISR_NOERRCODE 31
+ISR_NOERRCODE 128
+ISR_NOERRCODE 177
 
-    // Setup user data segment.
-    mov $USER_DS, %ax
-    mov %ax, %ds
-    mov %ax, %es
+IRQ 0, 32
+IRQ   1,    33
+IRQ   2,    34
+IRQ   3,    35
+IRQ   4,    36
+IRQ   5,    37
+IRQ   6,    38
+IRQ   7,    39
+IRQ   8,    40
+IRQ   9,    41
+IRQ  10,    42
+IRQ  11,    43
+IRQ  12,    44
+IRQ  13,    45
+IRQ  14,    46
+IRQ  15,    47
 
-    popa          // Restore the registers state.
-    add $8, %esp  // Remove interrupt number and error code from stack.
-    iret
-.type isrCommon, @function
+.extern isr_handler
+isr_common_stub:
+	pusha
+	mov %ds, %eax
+	push %eax
+	mov %cr2, %eax
+	push %eax
 
-// Exceptions.
-isrGenerate 0
-isrGenerate 1
-isrGenerate 2
-isrGenerate 3
-isrGenerate 4
-isrGenerate 5
-isrGenerate 6
-isrGenerate 7
-isrGenerate 8
-isrGenerate 9
-isrGenerate 10
-isrGenerate 11
-isrGenerate 12
-isrGenerate 13
-isrGenerate 14
-isrGenerate 15
-isrGenerate 16
-isrGenerate 17
-isrGenerate 18
-isrGenerate 19
-isrGenerate 20
-isrGenerate 21
-isrGenerate 22
-isrGenerate 23
-isrGenerate 24
-isrGenerate 25
-isrGenerate 26
-isrGenerate 27
-isrGenerate 28
-isrGenerate 29
-isrGenerate 30
-isrGenerate 31
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
 
-// IRQs.
-isrGenerate 32
-isrGenerate 33
-isrGenerate 34
-isrGenerate 35
-isrGenerate 36
-isrGenerate 37
-isrGenerate 38
-isrGenerate 39
-isrGenerate 40
-isrGenerate 41
-isrGenerate 42
-isrGenerate 43
-isrGenerate 44
-isrGenerate 45
-isrGenerate 46
-isrGenerate 47
+	push %esp
+	call isr_handler
 
-// Syscalls.
-isrGenerate 128
+	add $0x8, %esp
+	pop %ebx
+	mov %bx, %ds
+	mov %bx, %es
+	mov %bx, %fs
+	mov %bx, %gs
+
+	popa
+	add $0x8, %esp
+	sti
+	iret
+
+
+
+
+.extern irq_handler
+irq_common_stub:
+	pusha
+	mov    %ds,%eax
+	push   %eax
+	mov    %cr2,%eax
+	push   %eax
+	mov    $0x10,%ax
+	mov    %eax,%ds
+	mov    %eax,%es
+	mov    %eax,%fs
+	mov    %eax,%gs
+	push   %esp
+	call   irq_handler
+	add    $0x8,%esp
+	pop    %ebx
+	mov    %ebx,%ds
+	mov    %ebx,%es
+	mov    %ebx,%fs
+	mov    %ebx,%gs
+	popa
+	add    $0x8,%esp
+	sti
+	iret
