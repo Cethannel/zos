@@ -15,7 +15,8 @@ const VGA_SIZE = VGA_WIDTH * VGA_HEIGHT;
 var terminal_row: u8 = 0;
 var terminal_column: u8 = 0;
 pub var terminal_color = vga_entry_color(.VGA_COLOR_LIGHT_GREY, .VGA_COLOR_BLACK);
-const terminal_buffer: [*]u16 = @ptrFromInt(0xC00B8000);
+//const terminal_buffer: [*]volatile u16 = @ptrFromInt(0xC00B8000);
+const terminal_buffer: [*]u16 = @ptrFromInt(0xB8000);
 //extern const terminal_buffer: [*c]volatile u16; // = @ptrFromInt(0xB8000);
 const basic_color = vga_entry_color(vga_color.VGA_COLOR_LIGHT_GREY, vga_color.VGA_COLOR_BLACK);
 

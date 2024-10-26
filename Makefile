@@ -28,4 +28,4 @@ bochs: myos.iso
 	$(BOCHS) -q
 
 run: myos.iso
-	qemu-system-x86_64 -d 'int,cpu_reset,guest_errors' -D qemu.txt -cdrom myos.iso -audiodev alsa,id=speaker -machine pcspk-audiodev=speaker
+	qemu-system-x86_64 -cdrom myos.iso -audiodev alsa,id=speaker -machine pcspk-audiodev=speaker

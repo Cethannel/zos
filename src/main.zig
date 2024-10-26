@@ -7,9 +7,11 @@ const MultiBoot = @import("kernel/multiboot.zig");
 const assert = @import("std").debug.assert;
 
 pub fn panic(message: []const u8, stack_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
-    _ = stack_trace;
     _ = ret_addr;
-    tty.printf("{s}", .{message});
+    tty.printf("\nPANIC: {s}\n", .{message});
+    if (stack_trace) |st| {
+        tty.printf("\nStack trance: {}\n", .{st});
+    }
     while (true) {}
 }
 
