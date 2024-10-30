@@ -19,6 +19,8 @@ SECTIONS
 
     . += 0xC0000000;
 
+    _kernel_start = .;
+
 	/* Add a symbol that indicates the start address of the kernel. */
 	.text ALIGN (4K) : AT (ADDR (.text) - 0xC0000000)
 	{
@@ -36,6 +38,17 @@ SECTIONS
 	{
 		*(COMMON)
 		*(.bss)
+		        __bss_end = .;
+        __debug_info_start = .;
+        __debug_info_end = .;
+        __debug_abbrev_start = .;
+        __debug_abbrev_end = .;
+        __debug_str_start = .;
+        __debug_str_end = .;
+        __debug_line_start = .;
+        __debug_line_end = .;
+        __debug_ranges_start = .;
+        __debug_ranges_end = .;
 	}
 
     _kernel_end = .;

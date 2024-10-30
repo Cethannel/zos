@@ -12,3 +12,5 @@ void terminal_putAt(uint16_t val, unsigned int x, unsigned int y) {
 
   terminal_buffer[index] = val;
 }
+
+uint16_t thing[2] = {1, 2};

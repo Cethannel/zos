@@ -136,7 +136,7 @@ fn setIdtGate(num: u8, base: u32, sel: u16, flags: u8) void {
     idt_entries[num].flags = @as(u8, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, flags))) | @as(c_int, 96)))));
 }
 
-const exception_messages = [_][]const u8{
+pub const exception_messages = [_][]const u8{
     "Division By Zero",
     "Debug",
     "Non Maskable Interrupt",
@@ -173,9 +173,9 @@ const exception_messages = [_][]const u8{
 
 export fn isr_handler(regs: *InterruptRegisters) void {
     if (regs.int_no < 32) {
-        tty.printf("{s}", .{exception_messages[regs.int_no]});
-        tty.printf("\n", .{});
-        tty.printf("Exception! System halted\n", .{});
+        tty.terminal_write(exception_messages[regs.int_no]);
+        tty.terminal_write("\n");
+        tty.terminal_write("Exception! System halted\n");
         x86.hang();
     }
 }

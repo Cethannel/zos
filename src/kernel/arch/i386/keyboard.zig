@@ -2,6 +2,7 @@ const std = @import("std");
 const Util = @import("util.zig");
 const Idt = @import("idt.zig");
 const x86 = @import("x86.zig");
+const TTY = @import("tty.zig");
 const kstd = @import("../../kernel_std.zig");
 
 pub fn init() void {
@@ -16,7 +17,7 @@ const conv = std.builtin.CallingConvention.Interrupt;
 fn keyboardHandler(args: *Idt.InterruptRegisters) void {
     _ = args;
     @setRuntimeSafety(false);
-    const scancode = Util.inb(0x60) & 0x7F;
+    const scancode: u8 = Util.inb(0x60) & 0x7F;
     const pressed = (Util.inb(0x60) & 0x80) == 0;
 
     switch (scancode) {
@@ -38,9 +39,9 @@ fn keyboardHandler(args: *Idt.InterruptRegisters) void {
         else => {
             if (pressed) {
                 if (capsOn or capsLock) {
-                    kstd.print("{c}", .{@as(u8, @intCast(uppercase[scancode]))});
+                    TTY.putc(@intCast(uppercase[scancode]));
                 } else {
-                    kstd.print("{c}", .{@as(u8, @intCast(lowercase[scancode]))});
+                    TTY.putc(@intCast(lowercase[scancode]));
                 }
             }
         },

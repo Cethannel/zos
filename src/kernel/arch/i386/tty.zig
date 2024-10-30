@@ -15,8 +15,8 @@ const VGA_SIZE = VGA_WIDTH * VGA_HEIGHT;
 var terminal_row: u8 = 0;
 var terminal_column: u8 = 0;
 pub var terminal_color = vga_entry_color(.VGA_COLOR_LIGHT_GREY, .VGA_COLOR_BLACK);
-//const terminal_buffer: [*]volatile u16 = @ptrFromInt(0xC00B8000);
-const terminal_buffer: [*]u16 = @ptrFromInt(0xB8000);
+var terminal_buffer: [*]volatile u16 = @ptrFromInt(0xC00B8000);
+//const terminal_buffer: [*]u16 = @ptrFromInt(0xB8000);
 //extern const terminal_buffer: [*c]volatile u16; // = @ptrFromInt(0xB8000);
 const basic_color = vga_entry_color(vga_color.VGA_COLOR_LIGHT_GREY, vga_color.VGA_COLOR_BLACK);
 
@@ -33,7 +33,16 @@ pub fn terminal_putentryat(c: u8, color: u8, x: usize, y: usize) void {
     terminal_buffer[index] = vga_entry(c, color);
 }
 
-pub fn terminal_putchar(c: u8) void {
+pub const putCharError = error{
+    Zero,
+};
+
+pub fn terminal_putchar(c: u8) !void {
+    @setRuntimeSafety(false);
+    if (c == 0) {
+        return error.Zero;
+    }
+
     if (c == '\n') {
         new_line();
         return;
@@ -68,6 +77,7 @@ fn move_up() void {
 }
 
 fn new_line() void {
+    @setRuntimeSafety(false);
     for (1..VGA_HEIGHT) |row| {
         for (0..VGA_WIDTH) |col| {
             terminal_buffer[(row - 1) * VGA_WIDTH + col] = terminal_buffer[row * VGA_WIDTH + col];
@@ -84,9 +94,19 @@ fn clear_row(row: usize) void {
     }
 }
 
+var printing_error = false;
+
+fn putCharErr(s: []const u8, i: usize) void {
+    if (!printing_error) {
+        printing_error = true;
+        defer printing_error = false;
+        printf("\nERROR: Got zero in: {s} at {}\n", .{ s, i });
+    }
+}
+
 pub fn terminal_write(s: []const u8) void {
     for (0..s.len) |i| {
-        terminal_putchar(s[i]);
+        terminal_putchar(s[i]) catch putCharErr(s, i);
     }
 }
 
@@ -107,15 +127,31 @@ pub fn initialize() void {
     }
 }
 
-pub const writer = Writer(void, error{}, callback){ .context = {} };
+pub fn reinit() void {
+    terminal_buffer = @ptrFromInt(0xC00B8000);
+}
 
-fn callback(_: void, string: []const u8) error{}!usize {
-    terminal_write(string);
-    return string.len;
+const WriterError = error{
+    Null,
+};
+
+pub const writer = Writer(void, WriterError, callback){ .context = {} };
+
+fn callback(_: void, inString: []const u8) WriterError!usize {
+    const str: ?[]const u8 = @ptrCast(inString);
+    if (str) |string| {
+        if (string.len == 0) {
+            return 0;
+        }
+        terminal_write(string);
+        return string.len;
+    } else {
+        return error.Null;
+    }
 }
 
 pub fn printf(comptime format: []const u8, args: anytype) void {
-    fmt.format(writer, format, args) catch unreachable;
+    fmt.format(writer, format, args) catch puts("Failed to print!\n");
 }
 
 pub fn panic(comptime format: []const u8, args: anytype) noreturn {
@@ -126,13 +162,18 @@ pub fn panic(comptime format: []const u8, args: anytype) noreturn {
     x86.hang();
 }
 
-export fn puts(message: [*]u8) void {
+pub export fn puts(message: [*:0]const u8) void {
     var i: usize = 0;
     while (message[i] != 0) : (i += 1) {
-        terminal_putchar(message[i]);
+        terminal_putchar(message[i]) catch putCharErr(message[0..i], i);
+        //i += 1;
     }
 }
 
-export fn putc(c: u8) void {
-    terminal_putchar(c);
+pub export fn putc(c: u8) void {
+    terminal_putchar(c) catch {};
+}
+
+pub fn printExample() void {
+    puts("Hello there" ++ [_]u8{0});
 }

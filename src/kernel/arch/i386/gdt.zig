@@ -99,10 +99,10 @@ fn makeEntry(base: u32, limit: u32, access: u8, flags: u8) GDTEntry {
 // Fill in the GDT.
 var gdt align(4) = [_]GDTEntry{
     makeEntry(0, 0, 0, 0),
-    makeEntry(0, 0xFFFFFFFF, KERNEL | CODE, 0xCF),
-    makeEntry(0, 0xFFFFFFFF, KERNEL | DATA, 0xCF),
-    makeEntry(0, 0xFFFFFFFF, USER | CODE, 0xCF),
-    makeEntry(0, 0xFFFFFFFF, USER | DATA, 0xCF),
+    makeEntry(0, 0xFFFFF, KERNEL | CODE, 0xCF),
+    makeEntry(0, 0xFFFFF, KERNEL | DATA, 0xCF),
+    makeEntry(0, 0xFFFFF, USER | CODE, 0xCF),
+    makeEntry(0, 0xFFFFF, USER | DATA, 0xCF),
     makeEntry(0, 0, 0, 0), // TSS (fill in at runtime).
 };
 

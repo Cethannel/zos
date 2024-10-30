@@ -10,10 +10,13 @@ const MultiBoot = @import("multiboot.zig");
 const x86 = @import("arch/i386/x86.zig");
 const kmalloc = @import("arch/i386/kmalloc.zig");
 const speeker = @import("arch/i386/speeker.zig");
+const std = @import("std");
 
 const TTYi = @import("arch/i386/tty.zig");
 
 export var interthing: u8 = 0;
+
+extern const thing: [*]u16;
 
 pub fn kernelMain(boot_info: *const MultiBoot.MultibootInfo) void {
     TTY.terminal_initialize();
@@ -38,13 +41,33 @@ pub fn kernelMain(boot_info: *const MultiBoot.MultibootInfo) void {
     //_ = physcalAllocStart;
     _ = Memory;
 
+    kstd.printf("Eceptions messages: 0x{X}\n", .{@intFromPtr(IDT.exception_messages[0].ptr)});
+    kstd.printf("thing: 0x{X}\n", .{@intFromPtr(thing)});
+
     Memory.init(boot_info.mem_upper * 1024, physcalAllocStart);
 
-    kstd.printf("Initialized memory\n", .{});
+    TTY.reinit();
+
+    //kstd.printf("Initialized memory\n", .{});
+    TTY.TTY.putc('N');
+    TTY.TTY.printExample();
+
+    kstd.simpleFn(1);
+    TTY.TTY.printExample();
+
+    //std.builtin.CallingConvention.
+
+    //if (1 == 1) {
+    //    @panic("YAY");
+    //}
 
     kmalloc.init(0x1000);
 
-    kstd.printf("Hello\n", .{});
+    kstd.simpleFn(1);
+
+    TTY.TTY.printExample();
+
+    kstd.printf("Hello\n\x00", .{});
 
     while (true) {}
 }

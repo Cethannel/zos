@@ -17,3 +17,8 @@ pub fn kpanic(comptime format: []const u8, args: anytype) noreturn {
     TTY.printf(format, args);
     util.panic("kpanic");
 }
+
+pub noinline fn simpleFn(a: u32) void {
+    _ = a;
+    asm volatile ("nop");
+}
