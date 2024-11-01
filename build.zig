@@ -51,4 +51,131 @@ pub fn build(b: *std.Build) void {
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(kernel);
+
+    var isodir = b.step("isodir", "Make files in isodir");
+    isodir.makeFn = makeDirs;
+
+    var grub = b.step("grub", "Adds grub config into dir");
+    grub.dependOn(isodir);
+    grub.makeFn = copyGrub;
+
+    var osbin = b.step("osbin", "Moves binary to correct spot");
+    osbin.dependOn(isodir);
+    osbin.dependOn(&kernel.step);
+    osbin.makeFn = copyBin;
+
+    var mkiso = b.addSystemCommand(
+        &.{ "grub2-mkrescue", "--modules=fat" },
+    );
+    _ = mkiso.captureStdErr();
+    mkiso.addArg("-o");
+    const iso = mkiso.addOutputFileArg("myos.iso");
+    mkiso.addDirectoryArg(b.path(".zig-cache/isodir"));
+    mkiso.step.dependOn(&kernel.step);
+    mkiso.step.dependOn(grub);
+    mkiso.step.dependOn(osbin);
+
+    const outIso = b.addInstallBinFile(iso, "myos.iso");
+    outIso.step.dependOn(&mkiso.step);
+
+    b.default_step = &outIso.step;
+
+    const bochsCmd = b.addSystemCommand(&.{ "bochs-debugger", "-q" });
+    bochsCmd.step.dependOn(&mkiso.step);
+
+    const bochsRun = b.step("bochs", "Run bochs");
+    bochsRun.dependOn(&bochsCmd.step);
+
+    const qemu = "qemu-system-x86_64";
+    const qemuArgs = .{
+        "-audiodev",
+        "alsa,id=speaker",
+        "-machine",
+        "pcspk-audiodev=speaker",
+    };
+    var qemuCmd = b.addSystemCommand(&.{qemu});
+    qemuCmd.addFileArg(iso);
+    qemuCmd.addArgs(&qemuArgs);
+    qemuCmd.step.dependOn(&mkiso.step);
+
+    const qemuRun = b.step("qemu", "Run qemu");
+    qemuRun.dependOn(&qemuCmd.step);
+
+    var debugCmd = b.addSystemCommand(&.{qemu});
+    debugCmd.addFileArg(iso);
+    debugCmd.addArgs(&qemuArgs);
+    debugCmd.addArgs(&.{
+        "-S",
+        "-s",
+    });
+    debugCmd.step.dependOn(&mkiso.step);
+
+    const debugRun = b.step("debug", "Run qemu");
+    debugRun.dependOn(&debugCmd.step);
+
+    var lldb_cmd = b.addSystemCommand(&.{"lldb"});
+    lldb_cmd.addArgs(&.{
+        "zig-out/bin/zig-os",
+        "--one-line",
+        "gdb-remote 1234",
+    });
+    lldb_cmd.step.dependOn(&mkiso.step);
+    lldb_cmd.step.dependOn(&kernel.step);
+
+    const lldbRun = b.step("lldb", "Starts lldb and connects");
+    lldbRun.dependOn(&lldb_cmd.step);
+}
+
+fn makeDirs(
+    step: *std.Build.Step,
+    prog_node: std.Progress.Node,
+) !void {
+    _ = prog_node;
+    try step.owner.cache_root.handle.makePath("isodir/boot/grub/");
+}
+
+fn copyGrub(
+    step: *std.Build.Step,
+    prog_node: std.Progress.Node,
+) !void {
+    _ = prog_node;
+    const cache_root = step.owner.cache_root.handle;
+    const root = step.owner.build_root.handle;
+
+    var inFile = try root.openFile("grub.cfg", .{ .mode = .read_only });
+    defer inFile.close();
+
+    var outDir = try cache_root.createFile("isodir/boot/grub/grub.cfg", .{});
+    defer outDir.close();
+
+    try copyFile(&inFile, &outDir);
+}
+
+fn copyBin(
+    step: *std.Build.Step,
+    prog_node: std.Progress.Node,
+) !void {
+    _ = prog_node;
+    const installed_files = step.owner.install_path;
+    const cache_root = step.owner.cache_root.handle;
+
+    var install_path = try std.fs.openDirAbsolute(installed_files, .{});
+
+    var inFile = try install_path.openFile("bin/zig-os", .{ .mode = .read_only });
+    defer inFile.close();
+    var outFile = try cache_root.createFile("isodir/boot/myos.bin", .{});
+    defer outFile.close();
+
+    try copyFile(&inFile, &outFile);
+}
+
+fn copyFile(inFile: *std.fs.File, outFile: *std.fs.File) !void {
+    var buf = [_]u8{0} ** (1024 * 1024);
+
+    const end = try inFile.getEndPos();
+
+    while (try inFile.getPos() < end) {
+        const numBytes = try inFile.read(&buf);
+        _ = try outFile.write(buf[0..numBytes]);
+    }
 }
