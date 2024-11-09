@@ -104,12 +104,12 @@ pub const MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT =   2;
 pub const MmapEntry = packed struct
 {
   size: u32,
-  //addr_low: u32,
-  //addr_high: u32,
-  addr: u64,
-  //len_low: u32,
-  //len_high: u32,
-  len: u32,
+  addr_low: u32,
+  addr_high: u32,
+  //addr: u64,
+  len_low: u32,
+  len_high: u32,
+  //len: u32,
   type: u32,
 };
 

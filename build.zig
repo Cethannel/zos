@@ -64,8 +64,15 @@ pub fn build(b: *std.Build) void {
     osbin.dependOn(&kernel.step);
     osbin.makeFn = copyBin;
 
+    const gb = b.option([]const u8, "grub", "grub command to use");
+
+    var grubCmd: []const u8 = "grub-mkrescue";
+    if (gb) |gbC| {
+        grubCmd = gbC;
+    }
+
     var mkiso = b.addSystemCommand(
-        &.{ "grub2-mkrescue", "--modules=fat" },
+        &.{ grubCmd, "--modules=fat" },
     );
     _ = mkiso.captureStdErr();
     mkiso.addArg("-o");
@@ -80,7 +87,14 @@ pub fn build(b: *std.Build) void {
 
     b.default_step = &outIso.step;
 
-    const bochsCmd = b.addSystemCommand(&.{ "bochs-debugger", "-q" });
+    const bochsSysCmdOpt = b.option([]const u8, "bochs", "bochs command to use");
+
+    var bochsSysCmd: []const u8 = "bochs";
+    if (bochsSysCmdOpt) |bsc| {
+        bochsSysCmd = bsc;
+    }
+
+    const bochsCmd = b.addSystemCommand(&.{ bochsSysCmd, "-q" });
     bochsCmd.step.dependOn(&mkiso.step);
 
     const bochsRun = b.step("bochs", "Run bochs");
@@ -115,7 +129,7 @@ pub fn build(b: *std.Build) void {
 
     var lldb_cmd = b.addSystemCommand(&.{"lldb"});
     lldb_cmd.addArgs(&.{
-        "zig-out/bin/zig-os",
+        "zig-out/bin/myos.iso",
         "--one-line",
         "gdb-remote 1234",
     });

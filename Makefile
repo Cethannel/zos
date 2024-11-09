@@ -1,12 +1,13 @@
 ZIG_FILES := $(shell find src -name '*.zig')
 ASM_FILES := $(shell find src -name '*.S')
 
-MKRESCUE=grub2-mkrescue
-#MKRESCUE=grub-mkrescue
-BOCHS=bochs-debugger
-#BOCHS=bochs
+#MKRESCUE=grub2-mkrescue
+MKRESCUE=grub-mkrescue
+#BOCHS=bochs-debugger
+BOCHS=bochs
 QEMU=qemu-system-x86_64
-QEMU_FLAGS=-cdrom myos.iso -audiodev alsa,id=speaker -machine pcspk-audiodev=speaker
+QEMU_FLAGS=-cdrom myos.iso -audiodev alsa,id=speaker -machine pcspk-audiodev=speaker\
+  -serial stdio                                  \
 
 zig-out/bin/zig-os: $(ZIG_FILES) $(ASM_FILES)
 	zig build
