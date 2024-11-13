@@ -1,0 +1,35 @@
+.type loadGDT, @function
+.global loadGDT
+
+////
+// Load the GDT into the system registers.
+//
+// Arguments:
+//     gdtr: Pointer to the GDTR.
+//
+loadGDT:
+    mov +4(%esp), %eax  // Fetch the gdtr parameter.
+    lgdt (%eax)         // Load the new GDT.
+
+    // Reload data segments (GDT entry 2: kernel data).
+    ret
+
+.global reloadSegments
+reloadSegments:
+    push 0x08
+    leaq .reload_CS(%rip), %rax
+    LRETQ
+
+.reload_CS:
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+    mov %ax, %ss
+
+.global tss_flush
+tss_flush:
+   mov $0x2B, %ax
+   ltr %ax
+   ret

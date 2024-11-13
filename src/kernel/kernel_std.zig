@@ -1,5 +1,11 @@
 const TTY = @import("tty.zig");
-const util = @import("arch/i386/util.zig");
+const builtin = @import("builtin");
+
+pub const util = switch (builtin.cpu.arch) {
+    .x86 => @import("arch/i386/util.zig"),
+    .x86_64 => @import("arch/amd64/util.zig"),
+    else => @import("util is not supported on this architecture"),
+};
 
 pub fn printf(comptime format: []const u8, args: anytype) void {
     TTY.printf(format, args);

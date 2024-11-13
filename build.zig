@@ -31,21 +31,59 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .use_lld = true,
+        .strip = false,
+        .link_libc = false,
+        .pic = false,
+        .code_model = switch (target.result.cpu.arch) {
+            .x86_64 => .large,
+            .x86 => .default,
+            else => @panic(
+                b.fmt("Unsupported arch: {s}", .{@tagName(target.result.cpu.arch)}),
+            ),
+        },
     });
 
     //kernel.code_model = .kernel;
 
-    kernel.addAssemblyFile(b.path("src/boot.S"));
-    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/gdt.S"));
-    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/interrupts.S"));
-    kernel.addAssemblyFile(b.path("src/kernel/arch/i386/util.S"));
-    //kernel.addAssemblyFile(b.path("src/kernel/arch/i386/isr.S"));
-    kernel.addObjectFile(b.path("src/kernel/arch/i386/isr.o"));
-    kernel.addCSourceFile(.{
-        .file = b.path("src/kernel/arch/i386/memory.c"),
-    });
+    const archAsmFiles = [_][]const u8{
+        "gdt.S",
+        "interrupts.S",
+        "util.S",
+        "boot.S",
+    };
 
-    kernel.setLinkerScript(b.path("src/linker.ld"));
+    const archPath = switch (target.query.cpu_arch.?) {
+        .x86 => b.path("src/kernel/arch/i386/"),
+        .x86_64 => b.path("src/kernel/arch/amd64/"),
+        else => @panic(
+            b.fmt("Unsupported arch: {s}", .{@tagName(target.result.cpu.arch)}),
+        ),
+    };
+
+    for (archAsmFiles) |file| {
+        kernel.addAssemblyFile(archPath.path(b, file));
+    }
+
+    const archObjectFiles = [_][]const u8{
+        "isr.o",
+    };
+
+    for (archObjectFiles) |file| {
+        kernel.addObjectFile(archPath.path(b, file));
+    }
+
+    //kernel.addAssemblyFile(b.path("src/kernel/arch/i386/isr.S"));
+    //kernel.addObjectFile(b.path("src/kernel/arch/i386/isr.o"));
+
+    const archCFiles = [_][]const u8{
+        "memory.c",
+    };
+
+    for (archCFiles) |file| {
+        kernel.addCSourceFile(.{ .file = archPath.path(b, file) });
+    }
+
+    kernel.setLinkerScript(archPath.path(b, "linker.ld"));
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

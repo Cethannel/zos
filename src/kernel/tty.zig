@@ -1,4 +1,10 @@
-pub const TTY = @import("arch/i386/tty.zig");
+const builtin = @import("builtin");
+
+pub const TTY = switch (builtin.cpu.arch) {
+    .x86 => @import("arch/i386/tty.zig"),
+    .x86_64 => @import("arch/amd64/tty.zig"),
+    else => @import("tty is not supported on this architecture"),
+};
 
 pub fn terminal_initialize() void {
     TTY.initialize();
