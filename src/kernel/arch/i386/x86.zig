@@ -230,3 +230,34 @@ pub inline fn outb(port: u16, value: u8) void {
           [port] "N{dx}" (port),
     );
 }
+
+////
+// Write a long on a port.
+//
+// Arguments:
+//     port: Port where to write the value.
+//     value: Value to be written.
+//
+pub inline fn outl(port: u16, value: u32) void {
+    asm volatile ("outl %[value], %[port]"
+        :
+        : [value] "{eax}" (value),
+          [port] "N{dx}" (port),
+    );
+}
+
+////
+// Read a long from a port.
+//
+// Arguments:
+//     port: Port from where to read.
+//
+// Returns:
+//     The read byte.
+//
+pub inline fn inl(port: u16) u32 {
+    return asm volatile ("inl %[port], %[result]"
+        : [result] "={eax}" (-> u32),
+        : [port] "N{dx}" (port),
+    );
+}

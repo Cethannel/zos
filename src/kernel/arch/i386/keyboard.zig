@@ -3,6 +3,7 @@ const Util = @import("util.zig");
 const Idt = @import("idt.zig");
 const x86 = @import("x86.zig");
 const TTY = @import("tty.zig");
+const serial = @import("serial.zig");
 const kstd = @import("../../kernel_std.zig");
 
 pub fn init() void {
@@ -39,9 +40,13 @@ fn keyboardHandler(args: *Idt.InterruptRegisters) void {
         else => {
             if (pressed) {
                 if (capsOn or capsLock) {
-                    TTY.putc(@intCast(uppercase[scancode]));
+                    const c: u8 = @intCast(uppercase[scancode]);
+                    TTY.putc(c);
+                    serial.write_serial(c);
                 } else {
-                    TTY.putc(@intCast(lowercase[scancode]));
+                    const c: u8 = @intCast(lowercase[scancode]);
+                    TTY.putc(c);
+                    serial.write_serial(c);
                 }
             }
         },

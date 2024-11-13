@@ -4,6 +4,7 @@ const tty = @import("tty.zig");
 const x86 = @import("x86.zig");
 const util = @import("util.zig");
 const pic = @import("pic.zig");
+const serial = @import("serial.zig");
 
 pub const InterruptRegisters = extern struct {
     cr2: u32 = @import("std").mem.zeroes(u32),
@@ -197,7 +198,12 @@ export fn irq_handler(regs: *InterruptRegisters) callconv(.C) void {
         const handler = irq_routines[regs.int_no - 32];
 
         if (handler) |hand| {
+            if (regs.int_no != 32) {
+                serial.print("Unhandled irq: {}\n", .{regs.int_no});
+            }
             hand(regs);
+        } else {
+            serial.print("Unhandled irq: {}\n", .{regs.int_no});
         }
     }
 
