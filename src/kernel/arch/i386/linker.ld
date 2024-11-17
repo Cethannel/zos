@@ -17,9 +17,10 @@ SECTIONS
         *(.note.gnu.build-id)
     }
 
-    . += 0xC0000000;
+    . += 0xC0100000;
+    kernel_virtual_start = .;
 
-    _kernel_start = .;
+    kernel_physical_start = . - 0xC0000000;
 
 	/* Add a symbol that indicates the start address of the kernel. */
 	.text ALIGN (4K) : AT (ADDR (.text) - 0xC0000000)
@@ -40,5 +41,6 @@ SECTIONS
 		*(.bss)
 	}
 
-    _kernel_end = .;
+    kernel_virtual_end = .;
+    kernel_physical_end = . - 0xC0000000;
 }

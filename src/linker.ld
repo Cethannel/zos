@@ -17,7 +17,7 @@ SECTIONS
         *(.note.gnu.build-id)
     }
 
-    . += 0xC0000000;
+    . += 0xC0100000;
 
     _kernel_start = .;
 

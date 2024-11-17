@@ -13,6 +13,11 @@ const serial = @import("serial.zig");
 const pci = @import("pci.zig");
 const kstd = @import("../../kernel_std.zig");
 
+extern const kernel_virtual_start: usize;
+extern const kernel_virtual_end: usize;
+extern const kernel_physical_start: usize;
+extern const kernel_physical_end: usize;
+
 pub fn init(boot_info: *const MultiBoot.MultibootInfo) !void {
     asm volatile ("cli");
     serial.init() catch unreachable;

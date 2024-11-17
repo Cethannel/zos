@@ -198,9 +198,6 @@ export fn irq_handler(regs: *InterruptRegisters) callconv(.C) void {
         const handler = irq_routines[regs.int_no - 32];
 
         if (handler) |hand| {
-            if (regs.int_no != 32) {
-                serial.print("Unhandled irq: {}\n", .{regs.int_no});
-            }
             hand(regs);
         } else {
             serial.print("Unhandled irq: {}\n", .{regs.int_no});
