@@ -216,4 +216,131 @@ pub const CommandHeaders = struct {
     pub fn is_valid(self: *const @This()) bool {
         return self.commonHeaders.vendorId != 0xFFFF;
     }
+
+    pub fn getDevice(self: *const @This()) ?Device {
+        for (device_list.items) |vendor| {
+            if (vendor.id == self.commonHeaders.vendorId) {
+                for (vendor.devices.items) |device| {
+                    if (device.id == self.commonHeaders.deviceId) {
+                        return device;
+                    }
+                }
+            }
+        }
+        return null;
+    }
 };
+
+const Vendor = struct {
+    id: u16,
+    name: []const u8,
+    devices: std.ArrayList(Device),
+};
+
+const Device = struct {
+    id: u16,
+    name: []const u8,
+};
+
+const PciFileReaderCtx = struct {
+    const file = @embedFile("pci.ids");
+    const errorSet = error{};
+    pos: usize,
+
+    pub fn readFn(self: *@This(), buffer: []u8) errorSet!usize {
+        const toRead = @min(file.len - self.pos, buffer.len);
+
+        for (0..toRead) |i| {
+            buffer[i] = file[self.pos + i];
+        }
+
+        self.pos += toRead;
+
+        return toRead;
+    }
+
+    pub fn getReader() type {
+        return std.io.Reader(*@This(), errorSet, readFn);
+    }
+
+    pub fn init() @This() {
+        return .{
+            .pos = 0,
+        };
+    }
+
+    pub fn reader(self: *@This()) getReader() {
+        return .{
+            .context = self,
+        };
+    }
+};
+
+const device_list = getPCIDeviceList() catch unreachable;
+
+fn errorToOptional(input: anytype) ?@typeInfo(@TypeOf(input)).ErrorUnion.payload {
+    return input catch null;
+}
+
+fn getPCIDeviceList() !std.ArrayList(Vendor) {
+    @setEvalBranchQuota(1000 * 1000);
+
+    var ctx = PciFileReaderCtx.init();
+    var reader = ctx.reader();
+    const alloc = std.heap.page_allocator;
+    var vendors = std.ArrayList(Vendor).init(alloc);
+    var vendor: ?Vendor = null;
+    var devices = std.ArrayList(Device).init(alloc);
+
+    var deviceIndent = false;
+
+    var lineBuf: [256]u8 = undefined;
+    while (errorToOptional(reader.readUntilDelimiter(
+        &lineBuf,
+        '\n',
+    ))) |line| {
+        if (line.len == 0) {
+            continue;
+        }
+        if (line[0] == '#' or (line.len >= 3 and line[2] == '\t')) {
+            continue;
+        }
+
+        if (line[0] == '\t') {
+            deviceIndent = true;
+        } else {
+            deviceIndent = false;
+        }
+
+        if (deviceIndent) {
+            const id = line[1..5];
+            const nameIn = line[7..];
+            const name = try alloc.alloc(u8, nameIn.len);
+            @memcpy(&name, nameIn);
+
+            const idNum = try std.fmt.parseInt(u16, id, 16);
+            devices.append(.{
+                .id = idNum,
+                .name = name,
+            });
+        } else {
+            if (vendor) |vend| {
+                vend.devices = devices;
+                try vendors.append(vend);
+            }
+
+            const id = line[0..4];
+            const nameIn = line[6..];
+            const name = try alloc.alloc(u8, nameIn.len);
+            @memcpy(&name, nameIn);
+
+            const idNum = try std.fmt.parseInt(u16, id, 16);
+            vendor = Vendor{
+                .id = idNum,
+                .name = name,
+                .devices = undefined,
+            };
+            devices.clearAndFree();
+        }
+    }
+}

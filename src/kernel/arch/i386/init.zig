@@ -42,6 +42,7 @@ pub fn init(boot_info: *const MultiBoot.MultibootInfo) !void {
             const dev = pci.CommandHeaders.get(@intCast(bus), @intCast(slot));
             if (dev.is_valid()) {
                 serial.debug_print(dev);
+                serial.debug_print(dev.getDevice());
             }
         }
     }
